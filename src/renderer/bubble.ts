@@ -124,10 +124,12 @@ export class SpeechBubbleManager {
       bubble.appendChild(optionsContainer);
     }
 
-    // Dismiss on click background of bubble (if not clicking buttons)
+    // Dismiss on click background of bubble (only for non-sticky, non-interactive notifications)
     bubble.addEventListener('click', (e) => {
       e.stopPropagation();
-      this.dismiss();
+      if (!item.sticky && !hasOptions) {
+        this.dismiss();
+      }
     });
 
     this.container.appendChild(bubble);
@@ -143,7 +145,7 @@ export class SpeechBubbleManager {
     this.shownAt = performance.now();
     if (!isSticky) {
       const words = (item.message || '').trim().split(/\s+/).filter(Boolean).length;
-      let duration = Math.max(2500, 2000 + words * 180);
+      let duration = Math.min(12000, Math.max(2500, 2000 + words * 180));
 
       if (item.duration_ms && item.duration_ms > 0) {
         duration = item.duration_ms;
