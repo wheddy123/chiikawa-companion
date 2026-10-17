@@ -41,8 +41,22 @@ export class SoundManager {
     this.preloadClips();
   }
 
+  public stopAll(): void {
+    this.audioCache.forEach((audio) => {
+      try {
+        audio.pause();
+        audio.currentTime = 0;
+      } catch (err) {
+        // ignore
+      }
+    });
+  }
+
   public setEnabled(enabled: boolean): void {
     this.enabled = enabled;
+    if (!enabled) {
+      this.stopAll();
+    }
   }
 
   public isEnabled(): boolean {
@@ -98,6 +112,7 @@ export class SoundManager {
         const filename = identifier.endsWith('.mp3') ? identifier : `${identifier}.mp3`;
         audio = new Audio(`./sounds/${filename}`);
         audio.volume = this.volume;
+        this.audioCache.set(identifier, audio);
       } catch (e) {
         console.warn('[SoundManager] Failed to create audio for', identifier, e);
         return;
