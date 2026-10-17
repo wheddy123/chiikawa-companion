@@ -10,49 +10,52 @@ const path = require('path');
 const http = require('http');
 
 // High-risk destructive commands that require operator authorization
+// Matches commands at line start or after shell operators (;, &&, ||, |, $(, `, sudo)
+const CMD_PREFIX = '(?:^|[;&|`$\\n]\\s*(?:sudo\\s+)?)';
+
 const DANGEROUS_PATTERNS = [
   {
-    regex: /\brm\s+(-[a-zA-Z]*r[a-zA-Z]*f|[a-zA-Z]*f[a-zA-Z]*r|-r|-R)\s+/i,
+    regex: new RegExp(`${CMD_PREFIX}\\brm\\s+(-[a-zA-Z]*r[a-zA-Z]*f|[a-zA-Z]*f[a-zA-Z]*r|-r|-R)\\s+`, 'i'),
     label: 'Xoá thư mục/tập tin đệ quy (rm -rf / rm -r)',
   },
   {
-    regex: /\bgit\s+reset\s+--hard/i,
+    regex: new RegExp(`${CMD_PREFIX}\\bgit\\s+reset\\s+--hard`, 'i'),
     label: 'Huỷ toàn bộ thay đổi Git (git reset --hard)',
   },
   {
-    regex: /\bgit\s+clean\s+(-[a-zA-Z]*f)/i,
+    regex: new RegExp(`${CMD_PREFIX}\\bgit\\s+clean\\s+(-[a-zA-Z]*f)`, 'i'),
     label: 'Xoá vĩnh viễn untracked files (git clean -f)',
   },
   {
-    regex: /\bgit\s+push\s+.*(--force|-f\b)/i,
+    regex: new RegExp(`${CMD_PREFIX}\\bgit\\s+push\\s+.*(--force|-f\\b)`, 'i'),
     label: 'Ghi đè lịch sử Git từ xa (git push --force)',
   },
   {
-    regex: /\bmkfs(\.[a-z0-9]+)?\b/i,
+    regex: new RegExp(`${CMD_PREFIX}\\bmkfs(\\.[a-z0-9]+)?\\b`, 'i'),
     label: 'Format phân vùng đĩa (mkfs)',
   },
   {
-    regex: /\bdd\s+if=.*of=\/dev/i,
+    regex: new RegExp(`${CMD_PREFIX}\\bdd\\s+if=.*of=\\/dev`, 'i'),
     label: 'Ghi đè thiết bị phần cứng (dd of=/dev)',
   },
   {
-    regex: /\bfdisk\b/i,
+    regex: new RegExp(`${CMD_PREFIX}\\bfdisk\\b`, 'i'),
     label: 'Thao tác phân vùng ổ cứng (fdisk)',
   },
   {
-    regex: /\bchmod\s+(-R\s+)?(777|000)\s+(\/|~|\$HOME|\.\.)/i,
+    regex: new RegExp(`${CMD_PREFIX}\\bchmod\\s+(-R\\s+)?(777|000)\\s+(\\/|~|\\$HOME|\\.\\.)`, 'i'),
     label: 'Gán quyền hệ thống nguy hiểm (chmod 777/000)',
   },
   {
-    regex: /\bdrop\s+(database|table)\b/i,
+    regex: new RegExp(`${CMD_PREFIX}\\bdrop\\s+(database|table)\\b`, 'i'),
     label: 'Xoá database / table SQL',
   },
   {
-    regex: /\bkill\s+-9\s+1\b/i,
+    regex: new RegExp(`${CMD_PREFIX}\\bkill\\s+-9\\s+1\\b`, 'i'),
     label: 'Diệt tiến trình init hệ điều hành',
   },
   {
-    regex: /\b(shutdown|reboot)\b/i,
+    regex: new RegExp(`${CMD_PREFIX}\\b(shutdown|reboot)\\b`, 'i'),
     label: 'Tắt hoặc khởi động lại máy tính',
   },
 ];
