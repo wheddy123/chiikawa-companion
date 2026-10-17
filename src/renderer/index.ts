@@ -144,47 +144,60 @@ async function init() {
     animator.setDragging(false);
 
     if (!hasMoved) {
-      const isMouth = scene.hitTestMouth(lastDragScreenX, lastDragScreenY, latestBounds);
-      if (isMouth) {
-        // Toggle Mute with cute Band-aid sticker
-        const currentlyMuted = !soundManager.isEnabled();
-        const nextMuted = !currentlyMuted;
-        soundManager.setEnabled(!nextMuted);
-        scene.setMuted(nextMuted);
-        animator.setMuted(nextMuted);
-        window.electronAPI?.setSoundEnabled(!nextMuted);
-
-        if (nextMuted) {
-          bubbleManager.enqueue({
-            state: 'alert',
-            message: 'Mmmph!! Mmph-yaaa!! 🩹\n(Chiikawa đã bị bịt miệng. Bấm lại vào mồm để gỡ!)',
-            source: 'chiikawa',
-            duration_ms: 4500,
-          });
-        } else {
-          bubbleManager.enqueue({
-            state: 'success',
-            message: 'Haaa~! Thoát rồi! Đã gỡ băng keo và bật lại âm thanh 🎵',
-            source: 'chiikawa',
-            sound: 'usagi_yaha',
-            duration_ms: 3500,
-          });
-        }
-      } else {
-        // Clicked on mascot body without dragging: playful happy hop + random cute reaction sound!
-        animator.setState('success');
+      // Single click on mascot body: playful happy hop + cute reaction sound (if unmuted)
+      animator.setState('success');
+      if (soundManager.isEnabled()) {
         soundManager.playRandomReaction();
-        setTimeout(() => {
-          if (!bubbleManager.hasActiveBubble()) {
-            animator.setState('idle');
-          }
-        }, 1500);
       }
+      setTimeout(() => {
+        if (!bubbleManager.hasActiveBubble()) {
+          animator.setState('idle');
+        }
+      }, 1500);
     }
 
     // Re-evaluate hover hit test after drop
     updateHitTest(latestCursor, latestBounds);
   };
+
+  // Double-click on Chiikawa to toggle mute with cute band-aid sticker!
+  const toggleMute = () => {
+    const currentlyMuted = !soundManager.isEnabled();
+    const nextMuted = !currentlyMuted;
+    soundManager.setEnabled(!nextMuted);
+    scene.setMuted(nextMuted);
+    animator.setMuted(nextMuted);
+    window.electronAPI?.setSoundEnabled(!nextMuted);
+
+    if (nextMuted) {
+      bubbleManager.enqueue({
+        state: 'alert',
+        message: 'Mmmph!! Mmph-yaaa!! 🩹\n(Chiikawa đã bị dán băng keo bịt mồm & tắt tiếng. Nhấn đúp để gỡ!)',
+        source: 'chiikawa',
+        duration_ms: 4500,
+      });
+    } else {
+      bubbleManager.enqueue({
+        state: 'success',
+        message: 'Haaa~! Thoát rồi! Đã gỡ băng keo & bật lại âm thanh 🎵',
+        source: 'chiikawa',
+        sound: 'usagi_yaha',
+        duration_ms: 3500,
+      });
+    }
+  };
+
+  window.addEventListener('dblclick', (e: MouseEvent) => {
+    const bubbleEl = bubbleManager.getActiveBubbleElement();
+    if (bubbleEl && bubbleEl.contains(e.target as Node)) {
+      return;
+    }
+
+    const hit = scene.hitTest(e.clientX, e.clientY, latestBounds);
+    if (hit) {
+      toggleMute();
+    }
+  });
 
   window.addEventListener('mousedown', (e: MouseEvent) => {
     // Check if clicked on speech bubble

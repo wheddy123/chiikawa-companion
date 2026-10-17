@@ -147,6 +147,10 @@ export class TrayManager {
     this.tray.setContextMenu(contextMenu);
   }
 
+  public updateSoundState(_enabled: boolean): void {
+    this.updateContextMenu();
+  }
+
   public destroy(): void {
     if (this.tray) {
       this.tray.destroy();

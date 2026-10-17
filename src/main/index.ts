@@ -52,7 +52,7 @@ async function bootstrap() {
 
   windowManager.onSoundToggled = (enabled: boolean) => {
     configManager.updateConfig({ soundEnabled: enabled });
-    trayManager.updateSoundState(enabled);
+    trayManager?.updateContextMenu();
   };
 
   // Tray / Menu Bar setup
