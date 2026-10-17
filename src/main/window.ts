@@ -27,6 +27,7 @@ export class WindowManager {
       resizable: false,
       hasShadow: false,
       focusable: true,
+      enableLargerThanScreen: true,
       show: false, // will be shown by platform handler
       webPreferences: {
         preload: path.join(__dirname, '../preload/index.js'),
@@ -97,7 +98,12 @@ export class WindowManager {
 
     ipcMain.on('window:move-to', (_event, x: number, y: number) => {
       if (this.window && !this.window.isDestroyed()) {
-        this.window.setPosition(Math.round(x), Math.round(y));
+        this.window.setBounds({
+          x: Math.round(x),
+          y: Math.round(y),
+          width: this.config.windowWidth,
+          height: this.config.windowHeight,
+        });
         if (this.onWindowMoved) {
           this.onWindowMoved();
         }

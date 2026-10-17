@@ -168,8 +168,8 @@ async function init() {
     if (isMouseHovering) {
       isDragging = true;
       hasMoved = false;
-      dragGrabOffsetX = e.screenX - latestBounds.x;
-      dragGrabOffsetY = e.screenY - latestBounds.y;
+      dragGrabOffsetX = e.clientX;
+      dragGrabOffsetY = e.clientY;
       lastDragScreenX = e.screenX;
       lastDragScreenY = e.screenY;
 
