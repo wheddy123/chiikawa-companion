@@ -6,6 +6,8 @@ export interface NotifyPayload {
   source?: string;
   duration_ms?: number;
   sticky?: boolean;
+  sound?: string;
+  event?: string;
 }
 
 export interface CursorPosition {

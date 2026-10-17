@@ -1,0 +1,137 @@
+{
+  "pack_name": "Chiikawa Voice Lines Starter Pack",
+  "version": 1,
+  "platforms": ["macOS", "Windows"],
+  "assets_directory": "assets",
+  "notes": "Audio is not bundled. These are community soundboard source pages; verify permissions before redistribution.",
+  "clips": [
+    {
+      "id": "usagi_una",
+      "character": "Usagi",
+      "label": "Una",
+      "event_id": "assistant_start",
+      "filename": "usagi_una.mp3",
+      "source_page": "https://www.myinstants.com/en/instant/chiikawa-usagi-una-63012/"
+    },
+    {
+      "id": "usagi_yaha",
+      "character": "Usagi",
+      "label": "Yaha / Yahaaaa",
+      "event_id": "task_complete",
+      "filename": "usagi_yaha.mp3",
+      "source_page": "https://www.myinstants.com/en/instant/usagi-yahaaaaaa-49847/"
+    },
+    {
+      "id": "usagi_una_na_yaha",
+      "character": "Usagi",
+      "label": "U-una-na-ya-ha",
+      "event_id": "loading_or_busy",
+      "filename": "usagi_una_na_yaha.mp3",
+      "source_page": "https://www.myinstants.com/en/instant/u-una-na-ya-ha-62385/"
+    },
+    {
+      "id": "usagi_huh",
+      "character": "Usagi",
+      "label": "Huh",
+      "event_id": "unexpected_result",
+      "filename": "usagi_huh.mp3",
+      "source_page": "https://www.myinstants.com/en/instant/chiikawa-usagi-huh-99423/"
+    },
+    {
+      "id": "usagi_haaa",
+      "character": "Usagi",
+      "label": "Haaaa?!",
+      "event_id": "attention_surprise",
+      "filename": "usagi_haaa.mp3",
+      "source_page": "https://www.myinstants.com/en/instant/haaaa-36151/"
+    },
+    {
+      "id": "usagi_wula",
+      "character": "Usagi",
+      "label": "Wula!",
+      "event_id": "notification",
+      "filename": "usagi_wula.mp3",
+      "source_page": "https://www.myinstants.com/en/instant/wula-70712/"
+    },
+    {
+      "id": "hachiware_oi",
+      "character": "Hachiware",
+      "label": "Oi",
+      "event_id": "need_attention",
+      "filename": "hachiware_oi.mp3",
+      "source_page": "https://www.myinstants.com/en/instant/hachiware-oi-6090/"
+    },
+    {
+      "id": "momonga_silly",
+      "character": "Momonga",
+      "label": "Silly noise",
+      "event_id": "idle_random",
+      "filename": "momonga_silly.mp3",
+      "source_page": "https://www.myinstants.com/en/instant/momonga-silly-noise-42242/"
+    },
+    {
+      "id": "momonga_crying",
+      "character": "Momonga",
+      "label": "Crying",
+      "event_id": "error_or_sad_state",
+      "filename": "momonga_crying.mp3",
+      "source_page": "https://www.myinstants.com/en/instant/momonga-crying-11044/"
+    },
+    {
+      "id": "nani_nani",
+      "character": "Chiikawa / community-tagged",
+      "label": "Nani nani?",
+      "event_id": "question_prompt",
+      "filename": "nani_nani.mp3",
+      "source_page": "https://www.myinstants.com/en/instant/nani-nani-41887/"
+    },
+    {
+      "id": "una_yaha_curry",
+      "character": "Usagi",
+      "label": "Una yaha - curry",
+      "event_id": "random_reaction",
+      "filename": "una_yaha_curry.mp3",
+      "source_page": "https://www.myinstants.com/en/instant/una-yaha-curry-5702/"
+    },
+    {
+      "id": "usagi_iyaha",
+      "character": "Usagi",
+      "label": "IYAHA",
+      "event_id": "high_energy_reaction",
+      "filename": "usagi_iyaha.mp3",
+      "source_page": "https://tuna.voicemod.net/sound/9babd53b-8cf7-4dfa-bc06-c2b2e88b7be6"
+    },
+    {
+      "id": "usagi_ulaulaula",
+      "character": "Usagi",
+      "label": "Ulaulaula",
+      "event_id": "random_reaction_2",
+      "filename": "usagi_ulaulaula.mp3",
+      "source_page": "https://tuna.voicemod.net/sound/09e369d6-5723-4d40-9538-442bcce9cc37"
+    },
+    {
+      "id": "usagi_pyjamas_party",
+      "character": "Usagi",
+      "label": "Pyjamas Party",
+      "event_id": "special_notification",
+      "filename": "usagi_pyjamas_party.mp3",
+      "source_page": "https://tuna.voicemod.net/sound/1ab91762-eaa8-451f-b380-70dc888a1c63"
+    },
+    {
+      "id": "usagi_yaha_alt",
+      "character": "Usagi",
+      "label": "Yaha (alternate upload)",
+      "event_id": "task_complete_alt",
+      "filename": "usagi_yaha_alt.mp3",
+      "source_page": "https://tuna.voicemod.net/sound/9b11473f-6d6e-45ec-b262-09640fc09867"
+    },
+    {
+      "id": "usagi_yaha_short",
+      "character": "Usagi",
+      "label": "Yaha (short clip; page lists MP3 size)",
+      "event_id": "quick_notification",
+      "filename": "usagi_yaha_short.mp3",
+      "source_page": "https://soundinstants.com/sound/usagi-yahaaaaaa"
+    }
+  ]
+}

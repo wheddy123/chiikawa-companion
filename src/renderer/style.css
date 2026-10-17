@@ -248,15 +248,20 @@ canvas {
   flex: 1;
   border: 1px solid #cbd5e1;
   border-radius: 10px;
-  padding: 5px 8px;
-  font-size: 11px;
+  padding: 6px 10px;
+  font-size: 12px;
   outline: none;
   color: #1e293b;
   background: #f8fafc;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  pointer-events: auto !important;
+  cursor: text;
 }
 #chat-input:focus {
   border-color: #3b82f6;
   background: #ffffff;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 
 .chat-send-btn {

@@ -26,7 +26,7 @@ export class WindowManager {
       skipTaskbar: true,
       resizable: false,
       hasShadow: false,
-      focusable: false,
+      focusable: true,
       show: false, // will be shown by platform handler
       webPreferences: {
         preload: path.join(__dirname, '../preload/index.js'),
@@ -95,6 +95,22 @@ export class WindowManager {
       }
     });
 
+    ipcMain.on('window:focus', () => {
+      if (this.window && !this.window.isDestroyed()) {
+        if (process.platform === 'darwin') {
+          app.focus({ steal: true });
+        }
+        this.window.focus();
+        this.window.webContents.focus();
+      }
+    });
+
+    ipcMain.on('window:blur', () => {
+      if (this.window && !this.window.isDestroyed()) {
+        this.window.blur();
+      }
+    });
+
     ipcMain.on('mascot:bubble-dismissed', () => {
       if (this.onBubbleDismissed) {
         this.onBubbleDismissed();
@@ -103,6 +119,9 @@ export class WindowManager {
 
     ipcMain.on('renderer:ready', () => {
       console.log('[WindowManager] Renderer ready');
+      if (this.window && !this.window.isDestroyed()) {
+        this.window.webContents.send('mascot:sound-enabled', this.config.soundEnabled);
+      }
     });
   }
 

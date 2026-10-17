@@ -14,8 +14,17 @@ MỘT source code duy nhất bằng TypeScript, Electron và Three.js, tự đ�
   - `success`: Nhảy cẫng vui sướng, nhún squash & stretch, vẫy mình khi agent làm xong.
   - `alert`: Rung nhẹ, nhảy nhấp nhổm báo động khi agent chờ bạn phê duyệt.
   - `error`: Cúi đầu thất vọng, lắc đầu nguầy nguậy khi lệnh thất bại.
+  - **Vật lý co giãn Squishy Mochi**: Khi bị chuột kéo rê, thân Chiikawa kéo giãn dính như kẹo mochi theo hướng di chuyển, hai chân ngọ nguậy lủng lẳng cuống cuồng, buông chuột nảy tưng tưng đàn hồi jello spring cực yêu.
   - **Nhìn theo con trỏ chuột**: Đầu và thân Chiikawa dõi theo vị trí trỏ chuột trên màn hình.
   - **Crossfade**: Chuyển đổi trạng thái mượt mà không bị giật khung hình.
+- **🔊 Starter Pack 16 Voice Lines Chiikawa chính chủ**:
+  - Tích hợp 16 âm thanh soundboard đặc trưng: Usagi (*"Una"*, *"Yahaaaa"*, *"U-una-na-ya-ha"*, *"Haaaa?!"*, *"Wula!"*, *"IYAHA"*, *"Pyjamas Party"*), Hachiware (*"Oi"*), Momonga (*"Silly noise"*, *"Crying"*), Chiikawa (*"Nani nani?"*).
+  - Tự động phát âm thanh ăn khớp theo từng trạng thái (thành công, đang suy nghĩ, báo động, lỗi, click chọc ghẹo).
+  - Bật/tắt tiếng nhanh gọn qua menu Tray / Menu Bar.
+- **💬 Chat Box tương tác 2 chiều với Agent**:
+  - Bấm nút 💬 ở góc dưới hoặc click vào mascot để mở khung chat.
+  - Nhập prompt/chỉ đạo trực tiếp cho coding agent, nhấn Enter hoặc "Gửi". Chiikawa sẽ hiển thị câu hỏi và chuyển tiếp cho agent qua API `/chat/prompt` hoặc MCP Server.
+  - Tự động nhận diện bàn phím và nhả focus trả lại cho editor khi gõ xong.
 - **Cửa sổ trong suốt & Click xuyên vùng trống**:
   - `transparent: true`, `frame: false`, `alwaysOnTop: true`.
   - Tự động click-through qua vùng trong suốt; chỉ nhận click khi con trỏ rê vào mascot hoặc bong bóng thoại.
@@ -266,6 +275,32 @@ $body = @{
 } | ConvertTo-Json
 
 Invoke-RestMethod -Uri "http://127.0.0.1:7788/notify" -Method Post -Headers $headers -Body $body
+```
+
+---
+
+### 5. Kết Nối Trực Tiếp Qua Model Context Protocol (MCP)
+
+Chiikawa Companion cung cấp sẵn MCP Server tại `scripts/chiikawa-mcp.js` tương thích chuẩn JSON-RPC stdio. Các AI Agent (như **OpenCode**, **Antigravity**, **Claude Code**, **Cursor**) có thể tự động gọi Chiikawa thông qua tools:
+
+- `chiikawa_notify`: Gửi thông báo kèm trạng thái cảm xúc, âm thanh tùy chọn.
+- `chiikawa_play_sound`: Phát bất kỳ clip nào trong 16 voice line (ví dụ `usagi_yaha`, `usagi_una`, `usagi_iyaha`, `momonga_crying`).
+- `chiikawa_set_state`: Đổi trạng thái 3D mascot tức thì (`thinking`, `success`, `alert`, `error`, `idle`).
+- `chiikawa_get_user_prompt`: Đọc câu hỏi/chỉ đạo mới nhất mà người dùng vừa gõ vào khung chat của mascot.
+- `chiikawa_status`: Kiểm tra app Chiikawa có đang bật hay không.
+
+#### Cấu hình cho Claude Desktop / OpenCode / Antigravity / Cursor:
+Thêm vào file cấu hình MCP (ví dụ `claude_desktop_config.json` hoặc `.gemini/settings.json`):
+
+```json
+{
+  "mcpServers": {
+    "chiikawa": {
+      "command": "node",
+      "args": ["/đường/dẫn/tới/chiikaưa/scripts/chiikawa-mcp.js"]
+    }
+  }
+}
 ```
 
 ---

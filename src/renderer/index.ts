@@ -1,6 +1,7 @@
 import { ProceduralAnimator } from './animation';
 import { MascotScene } from './scene';
 import { SpeechBubbleManager } from './bubble';
+import { SoundManager } from './audio';
 import type { ElectronAPI } from '../preload';
 import type { CursorPosition, WindowBounds, NotifyPayload } from '../types';
 
@@ -16,6 +17,7 @@ async function init() {
 
   const animator = new ProceduralAnimator();
   const scene = new MascotScene(canvasContainer, animator);
+  const soundManager = new SoundManager();
 
   // Initialize SpeechBubbleManager
   let currentNotificationState: string = 'idle';
@@ -25,6 +27,7 @@ async function init() {
     (payload: NotifyPayload) => {
       currentNotificationState = payload.state;
       animator.setState(payload.state);
+      soundManager.playForState(payload.state, payload.sound || payload.event);
     }
   );
 
@@ -59,14 +62,23 @@ async function init() {
   const openChat = () => {
     isChatOpen = true;
     chatContainer.classList.remove('hidden');
-    chatInput.focus();
     window.electronAPI?.setIgnoreMouseEvents(false);
+    window.electronAPI?.focusWindow();
+    setTimeout(() => {
+      chatInput.focus();
+      chatInput.select();
+    }, 40);
+    soundManager.play('question_prompt');
   };
 
   const closeChat = () => {
     isChatOpen = false;
     chatContainer.classList.add('hidden');
     chatInput.blur();
+    window.electronAPI?.blurWindow();
+    if (window.electronAPI) {
+      window.electronAPI.setIgnoreMouseEvents(true, true);
+    }
   };
 
   const sendPrompt = () => {
@@ -118,6 +130,16 @@ async function init() {
   chatSendBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     sendPrompt();
+  });
+
+  chatInput.addEventListener('mousedown', (e) => {
+    e.stopPropagation();
+    window.electronAPI?.setIgnoreMouseEvents(false);
+    window.electronAPI?.focusWindow();
+  });
+
+  chatInput.addEventListener('focus', () => {
+    window.electronAPI?.focusWindow();
   });
 
   chatInput.addEventListener('keydown', (e) => {
@@ -182,6 +204,14 @@ async function init() {
   let hasMoved = false;
 
   window.addEventListener('mousedown', (e: MouseEvent) => {
+    // If chat is open and clicked outside of chat, close it
+    if (isChatOpen) {
+      if (!chatContainer.contains(e.target as Node) && !chatToggleBtn.contains(e.target as Node)) {
+        closeChat();
+        return;
+      }
+    }
+
     // Check if clicked on bubble or chat
     const bubbleEl = bubbleManager.getActiveBubbleElement();
     if (bubbleEl && bubbleEl.contains(e.target as Node)) {
@@ -220,8 +250,9 @@ async function init() {
       animator.setDragging(false);
 
       if (!hasMoved) {
-        // Clicked on mascot without dragging: playful happy hop!
+        // Clicked on mascot without dragging: playful happy hop + random cute reaction sound!
         animator.setState('success');
+        soundManager.playRandomReaction();
         setTimeout(() => {
           if (!bubbleManager.hasActiveBubble()) {
             animator.setState('idle');
@@ -249,6 +280,14 @@ async function init() {
       } else {
         scene.stopRenderLoop();
       }
+    });
+
+    window.electronAPI.onSoundEnabled((enabled: boolean) => {
+      soundManager.setEnabled(enabled);
+    });
+
+    window.electronAPI.onPlaySound((clipOrEvent: string) => {
+      soundManager.play(clipOrEvent);
     });
 
     // Notify main that renderer is ready

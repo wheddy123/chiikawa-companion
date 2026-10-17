@@ -160,6 +160,52 @@ function getPendingPrompt() {
   });
 }
 
+function playSound(clipOrEvent) {
+  return new Promise((resolve) => {
+    const config = loadConfig();
+    const port = config.port || 7788;
+    const token = config.token || '';
+
+    const postData = JSON.stringify({ clip: clipOrEvent });
+
+    const req = http.request(
+      {
+        hostname: '127.0.0.1',
+        port: port,
+        path: '/play-sound',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(postData),
+          Authorization: `Bearer ${token}`,
+          Host: `127.0.0.1:${port}`,
+        },
+        timeout: 2500,
+      },
+      (res) => {
+        let body = '';
+        res.on('data', (chunk) => (body += chunk));
+        res.on('end', () => {
+          if (res.statusCode === 200) {
+            resolve({ ok: true });
+          } else {
+            resolve({ ok: false, error: `HTTP ${res.statusCode}: ${body}` });
+          }
+        });
+      }
+    );
+
+    req.on('error', (err) => resolve({ ok: false, error: err.message }));
+    req.on('timeout', () => {
+      req.destroy();
+      resolve({ ok: false, error: 'Timeout playing sound' });
+    });
+
+    req.write(postData);
+    req.end();
+  });
+}
+
 // Tool definitions for MCP
 const TOOLS = [
   {
@@ -192,6 +238,11 @@ const TOOLS = [
           type: 'boolean',
           description: 'If true, speech bubble stays until user clicks to dismiss',
         },
+        sound: {
+          type: 'string',
+          description:
+            'Optional specific sound clip or event to play: "usagi_yaha", "usagi_una", "usagi_una_na_yaha", "usagi_huh", "usagi_haaa", "usagi_wula", "hachiware_oi", "momonga_silly", "momonga_crying", "nani_nani", "una_yaha_curry", "usagi_iyaha", "usagi_ulaulaula", "usagi_pyjamas_party"',
+        },
       },
       required: ['state', 'message'],
     },
@@ -214,6 +265,22 @@ const TOOLS = [
         },
       },
       required: ['state'],
+    },
+  },
+  {
+    name: 'chiikawa_play_sound',
+    description:
+      'Play one of the 16 authentic Chiikawa voice line sound effects (e.g. usagi_yaha, usagi_una, usagi_iyaha, momonga_crying, nani_nani).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sound: {
+          type: 'string',
+          description:
+            'Sound clip ID or event name: "usagi_yaha", "usagi_una", "usagi_una_na_yaha", "usagi_huh", "usagi_haaa", "usagi_wula", "hachiware_oi", "momonga_silly", "momonga_crying", "nani_nani", "una_yaha_curry", "usagi_iyaha", "usagi_ulaulaula", "usagi_pyjamas_party", "task_complete", "attention_surprise", etc.',
+        },
+      },
+      required: ['sound'],
     },
   },
   {
@@ -284,6 +351,8 @@ async function handleRpc(msg) {
         source: args.source || 'ai-agent',
         duration_ms: args.duration_ms,
         sticky: args.sticky,
+        sound: args.sound,
+        event: args.event,
       });
 
       if (res.ok) {
@@ -314,6 +383,25 @@ async function handleRpc(msg) {
           },
         };
       }
+    }
+
+    if (name === 'chiikawa_play_sound') {
+      const res = await playSound(args.sound);
+      return {
+        jsonrpc: '2.0',
+        id,
+        result: {
+          content: [
+            {
+              type: 'text',
+              text: res.ok
+                ? `Played Chiikawa voice line: "${args.sound}"`
+                : `Error playing sound: ${res.error}`,
+            },
+          ],
+          isError: !res.ok,
+        },
+      };
     }
 
     if (name === 'chiikawa_set_state') {

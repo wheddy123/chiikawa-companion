@@ -100,7 +100,11 @@ export class TrayManager {
       {
         label: config.soundEnabled ? 'Tắt tiếng' : 'Bật tiếng',
         click: () => {
-          this.configManager.updateConfig({ soundEnabled: !config.soundEnabled });
+          const next = !config.soundEnabled;
+          this.configManager.updateConfig({ soundEnabled: next });
+          if (!this.window.isDestroyed()) {
+            this.window.webContents.send('mascot:sound-enabled', next);
+          }
           this.updateContextMenu();
         },
       },

@@ -4,6 +4,7 @@ import type { NotifyPayload, MascotState } from '../types';
 export interface ServerCallbacks {
   onNotify: (payload: NotifyPayload) => void;
   onToggleRaycast?: () => void;
+  onPlaySound?: (clipOrEvent: string) => void;
 }
 
 export class NotifyServer {
@@ -134,6 +135,29 @@ export class NotifyServer {
       return;
     }
 
+    // Route: POST /play-sound
+    if (method === 'POST' && (url === '/play-sound' || url === '/play-sound/')) {
+      let body = '';
+      req.on('data', (c) => (body += c));
+      req.on('end', () => {
+        try {
+          const data = JSON.parse(body);
+          const clipOrEvent = data.clip || data.sound || data.event || data.id;
+          if (typeof clipOrEvent !== 'string' || !clipOrEvent.trim()) {
+            this.sendJsonResponse(res, 400, { error: 'Field "clip" or "event" must be a non-empty string' });
+            return;
+          }
+          if (this.callbacks.onPlaySound) {
+            this.callbacks.onPlaySound(clipOrEvent.trim());
+          }
+          this.sendJsonResponse(res, 200, { ok: true, played: clipOrEvent.trim() });
+        } catch (e) {
+          this.sendJsonResponse(res, 400, { error: 'Invalid JSON body' });
+        }
+      });
+      return;
+    }
+
     // Route: POST /notify
     if (method === 'POST' && (url === '/notify' || url === '/notify/')) {
       let body = '';
@@ -195,6 +219,14 @@ export class NotifyServer {
 
     if (payload.sticky !== undefined && typeof payload.sticky !== 'boolean') {
       return 'Field "sticky" must be a boolean';
+    }
+
+    if (payload.sound !== undefined && typeof payload.sound !== 'string') {
+      return 'Field "sound" must be a string';
+    }
+
+    if (payload.event !== undefined && typeof payload.event !== 'string') {
+      return 'Field "event" must be a string';
     }
 
     return null;

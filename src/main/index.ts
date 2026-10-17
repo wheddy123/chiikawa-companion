@@ -66,6 +66,11 @@ async function bootstrap() {
         macHandler.repositionToBottom();
       }
     },
+    onPlaySound: (clipOrEvent: string) => {
+      if (!win.isDestroyed()) {
+        win.webContents.send('mascot:play-sound', clipOrEvent);
+      }
+    },
   });
 
   try {

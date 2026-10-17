@@ -12,6 +12,7 @@ MESSAGE=""
 SOURCE="terminal"
 DURATION=""
 STICKY="false"
+SOUND=""
 
 # Helper for parsing
 while [[ $# -gt 0 ]]; do
@@ -30,6 +31,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --duration|-d)
       DURATION="$2"
+      shift 2
+      ;;
+    --sound)
+      SOUND="$2"
       shift 2
       ;;
     --sticky)
@@ -98,6 +103,9 @@ ESCAPED_MSG=$(echo "$MESSAGE" | awk '{gsub(/\\/, "\\\\"); gsub(/"/, "\\\""); gsu
 JSON_BODY="{\"state\":\"$STATE\",\"message\":\"$ESCAPED_MSG\",\"source\":\"$SOURCE\",\"sticky\":$STICKY"
 if [ -n "$DURATION" ]; then
   JSON_BODY="$JSON_BODY,\"duration_ms\":$DURATION"
+fi
+if [ -n "$SOUND" ]; then
+  JSON_BODY="$JSON_BODY,\"sound\":\"$SOUND\""
 fi
 JSON_BODY="$JSON_BODY}"
 

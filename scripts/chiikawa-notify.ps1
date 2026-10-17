@@ -22,7 +22,10 @@ param (
     [int]$DurationMs = 0,
 
     [Parameter()]
-    [switch]$Sticky
+    [switch]$Sticky,
+
+    [Parameter()]
+    [string]$Sound = ""
 )
 
 try {
@@ -52,6 +55,10 @@ try {
 
     if ($DurationMs -gt 0) {
         $body["duration_ms"] = $DurationMs
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($Sound)) {
+        $body["sound"] = $Sound
     }
 
     $jsonBody = $body | ConvertTo-Json -Compress
