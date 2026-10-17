@@ -1,10 +1,10 @@
 # 🐾 Chiikawa Companion — Comprehensive Project Handoff Context
 
-> **Version**: `v1.0.8`  
+> **Version**: `v1.0.9` (`chiikawa.AI v1`)  
 > **Repository**: [https://github.com/wheddy123/chiikawa-companion](https://github.com/wheddy123/chiikawa-companion)  
 > **Last Updated**: 2026-10-17  
 > **Target OS**: macOS (Apple Silicon / Intel) & Windows 10/11  
-> **Status**: Production-ready desk mascot with 3D animation, liquid physics, living telemetry rhythm, native Antigravity PreToolUse safety gate, and 1-click HITL decision buttons.
+> **Status**: Production release `chiikawa.AI v1` with calibrated mouth anchor bandaid, double-click mute toggle with instant audio cut, dynamic auto/click reading bubbles, calm idle stillness, and HITL decision buttons.
 
 ---
 
