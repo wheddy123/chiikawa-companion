@@ -322,6 +322,51 @@ async function init() {
 
     // Notify main that renderer is ready
     window.electronAPI.rendererReady();
+
+    // Expose debug interface strictly when in debug mode
+    const isDebug =
+      new URLSearchParams(window.location.search).get('debug') === '1' ||
+      Boolean((window.electronAPI as any)?.isDebug);
+
+    if (isDebug) {
+      (window as any).__chiikawa = {
+        getState: () => {
+          const bState = bubbleManager.getDebugState();
+          const bandaidScreenPx = scene.projectBandaidToScreen();
+          const bandaidWorldPos = scene.getBandaidWorldPosition();
+          const bandaidVis = scene.isBandaidVisible();
+          return {
+            muted: !soundManager.isEnabled(),
+            bubble: {
+              visible: bubbleManager.hasActiveBubble(),
+              text: bState.text,
+              shownAt: bState.shownAt,
+              hideAt: bState.hideAt,
+              queueLen: bState.queueLen,
+              sticky: bState.sticky,
+            },
+            mascot: {
+              rootPos: animator.currentPosition.toArray(),
+              rootRot: [animator.currentRotation.x, animator.currentRotation.y, animator.currentRotation.z],
+              rootScale: animator.currentScale.toArray(),
+            },
+            camera: scene.getCameraDebug(),
+            bandaid: {
+              visible: bandaidVis,
+              worldPos: bandaidWorldPos,
+              screenPx: bandaidScreenPx,
+            },
+            mouthAnchor: (scene as any).getMouthAnchor?.() || null,
+          };
+        },
+        projectToScreen: (v3: [number, number, number]) => scene.projectPointToScreen(v3),
+        setBandaidVisible: (vis: boolean) => scene.setBandaidVisible(vis),
+        placeBandaidAtScreen: (px: number, py: number) => scene.placeBandaidAtScreen(px, py),
+        scene,
+        animator,
+        bubbleManager,
+      };
+    }
   }
 }
 

@@ -87,6 +87,7 @@ async function bootstrap() {
       }
     },
     getTelemetry: () => telemetryManager.getLatest(),
+    getBrowserWindow: () => win,
   });
 
   try {

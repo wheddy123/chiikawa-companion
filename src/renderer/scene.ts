@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { ProceduralAnimator } from './animation';
+import { MOUTH_ANCHOR } from './mouth-anchor';
 import type { CursorPosition, WindowBounds } from '../types';
 
 export class MascotScene {
@@ -149,15 +150,19 @@ export class MascotScene {
           const bandaidMat = new THREE.MeshBasicMaterial({
             map: bandaidTex,
             transparent: true,
-            alphaTest: 0.05,
-            side: THREE.DoubleSide,
             depthWrite: false,
+            polygonOffset: true,
+            polygonOffsetFactor: -4,
+            polygonOffsetUnits: -4,
+            toneMapped: false,
+            side: THREE.DoubleSide,
           });
           this.bandaidMesh = new THREE.Mesh(bandaidGeo, bandaidMat);
           this.bandaidMesh.name = 'BandaidMouth';
-          // Position right on Chiikawa's mouth between pink blush cheeks
-          this.bandaidMesh.position.set(0, 0.67, 1.285);
-          this.bandaidMesh.rotation.set(-0.31, 0, -0.08);
+          this.bandaidMesh.renderOrder = 10;
+          // Positioned precisely on Chiikawa's mouth via measured MOUTH_ANCHOR
+          this.bandaidMesh.position.set(MOUTH_ANCHOR.pLocal[0], MOUTH_ANCHOR.pLocal[1], MOUTH_ANCHOR.pLocal[2]);
+          this.bandaidMesh.quaternion.set(MOUTH_ANCHOR.qLocal[0], MOUTH_ANCHOR.qLocal[1], MOUTH_ANCHOR.qLocal[2], MOUTH_ANCHOR.qLocal[3]);
           this.bandaidMesh.visible = false;
           gltf.scene.add(this.bandaidMesh);
 
@@ -302,8 +307,92 @@ export class MascotScene {
     }
   }
 
+  public isBandaidVisible(): boolean {
+    return this.bandaidMesh?.visible ?? false;
+  }
+
+  public setBandaidVisible(vis: boolean): void {
+    if (this.bandaidMesh) {
+      this.bandaidMesh.visible = vis;
+      if (vis) {
+        this.bandaidMesh.scale.set(1.0, 1.0, 1.0);
+      }
+    }
+  }
+
+  public getBandaidWorldPosition(): [number, number, number] {
+    if (!this.bandaidMesh) return [0, 0, 0];
+    const v = new THREE.Vector3();
+    this.bandaidMesh.getWorldPosition(v);
+    return [v.x, v.y, v.z];
+  }
+
+  public projectPointToScreen(pt: [number, number, number] | THREE.Vector3): [number, number] {
+    const v = pt instanceof THREE.Vector3 ? pt.clone() : new THREE.Vector3(pt[0], pt[1], pt[2]);
+    v.project(this.camera);
+    const canvasRect = this.renderer.domElement.getBoundingClientRect();
+    return [
+      canvasRect.left + (v.x * 0.5 + 0.5) * canvasRect.width,
+      canvasRect.top + (-v.y * 0.5 + 0.5) * canvasRect.height,
+    ];
+  }
+
+  public projectBandaidToScreen(): [number, number] {
+    if (!this.bandaidMesh) return [0, 0];
+    const v = new THREE.Vector3();
+    this.bandaidMesh.getWorldPosition(v);
+    return this.projectPointToScreen(v);
+  }
+
+  public getCameraDebug() {
+    return {
+      pos: [this.camera.position.x, this.camera.position.y, this.camera.position.z] as [number, number, number],
+      fov: this.camera.fov,
+      aspect: this.camera.aspect,
+    };
+  }
+
+  public placeBandaidAtScreen(px: number, py: number) {
+    if (!this.bandaidMesh || !this.modelRoot) return null;
+    const r = this.renderer.domElement.getBoundingClientRect();
+    const ndc = new THREE.Vector2(((px - r.left) / r.width) * 2 - 1, -((py - r.top) / r.height) * 2 + 1);
+    this.raycaster.setFromCamera(ndc, this.camera);
+    const hits = this.raycaster.intersectObject(this.modelRoot, true);
+    const hit = hits.find((h) => h.object !== this.bandaidMesh && h.face);
+    if (!hit || !hit.face) return null;
+
+    const nW = hit.face.normal.clone().transformDirection(hit.object.matrixWorld).normalize();
+    const pW = hit.point.clone().addScaledVector(nW, 0.012);
+    const parent = this.bandaidMesh.parent!;
+    const pLocal = parent.worldToLocal(pW.clone());
+
+    const qW = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), nW);
+    const rollQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -0.08);
+    qW.multiply(rollQuat);
+
+    const pq = new THREE.Quaternion();
+    parent.getWorldQuaternion(pq);
+    const qLocal = pq.invert().multiply(qW);
+
+    this.bandaidMesh.position.copy(pLocal);
+    this.bandaidMesh.quaternion.copy(qLocal);
+
+    return {
+      pointWorld: hit.point.toArray(),
+      normalWorld: nW.toArray(),
+      uv: hit.uv ? hit.uv.toArray() : null,
+      pLocal: [pLocal.x, pLocal.y, pLocal.z] as [number, number, number],
+      qLocal: [qLocal.x, qLocal.y, qLocal.z, qLocal.w] as [number, number, number, number],
+      screenPx: this.projectBandaidToScreen(),
+    };
+  }
+
+  public getMouthAnchor() {
+    return MOUTH_ANCHOR;
+  }
+
   public hitTestMouth(screenX: number, screenY: number, winBounds: WindowBounds): boolean {
-    if (!this.modelRoot) return false;
+    if (!this.modelRoot || !this.bandaidMesh) return false;
 
     const canvasRect = this.renderer.domElement.getBoundingClientRect();
     const localX = screenX - winBounds.x - canvasRect.left;
@@ -318,27 +407,19 @@ export class MascotScene {
       return false;
     }
 
-    this.mouseVec.x = (localX / canvasRect.width) * 2 - 1;
-    this.mouseVec.y = -(localY / canvasRect.height) * 2 + 1;
-
-    this.raycaster.setFromCamera(this.mouseVec, this.camera);
-
     // 1. If bandaid is visible, clicking on the bandaid is a direct hit
-    if (this.bandaidMesh && this.bandaidMesh.visible) {
+    if (this.bandaidMesh.visible) {
+      this.mouseVec.x = (localX / canvasRect.width) * 2 - 1;
+      this.mouseVec.y = -(localY / canvasRect.height) * 2 + 1;
+      this.raycaster.setFromCamera(this.mouseVec, this.camera);
       const hits = this.raycaster.intersectObject(this.bandaidMesh, false);
       if (hits.length > 0) return true;
     }
 
-    // 2. Check intersection with mascot mesh in mouth world coordinates
-    const intersects = this.raycaster.intersectObjects(this.meshes, false);
-    if (intersects.length > 0) {
-      const p = intersects[0].point;
-      // Mouth is in central horizontal zone and lower face vertical zone
-      const isMouth = Math.abs(p.x) < 0.38 && p.y >= -0.75 && p.y <= -0.38 && p.z > 0.35;
-      return isMouth;
-    }
-
-    return false;
+    // 2. Proximity test using projected MOUTH_ANCHOR (radius ~ sticker half-size + 10px = 32px)
+    const [anchorX, anchorY] = this.projectBandaidToScreen();
+    const dist = Math.hypot(localX - anchorX, localY - anchorY);
+    return dist <= 32;
   }
 
   private onResize = (): void => {

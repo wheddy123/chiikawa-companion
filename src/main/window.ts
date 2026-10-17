@@ -52,7 +52,8 @@ export class WindowManager {
 
     // Load renderer HTML
     const rendererPath = path.join(__dirname, '../renderer/index.html');
-    this.window.loadFile(rendererPath);
+    const isDebug = process.env.CHIIKAWA_DEBUG === '1';
+    this.window.loadFile(rendererPath, { query: isDebug ? { debug: '1' } : {} });
 
     // Setup IPC handlers
     this.setupIPC();

@@ -5,6 +5,8 @@ export class SpeechBubbleManager {
   private queue: NotifyPayload[] = [];
   private activeItem: NotifyPayload | null = null;
   private timer: number | null = null;
+  private shownAt: number = 0;
+  private hideAt: number = 0;
   private onStateChange: (payload: NotifyPayload) => void;
   private onOptionClick?: (opt: NotifyOption, item: NotifyPayload) => void;
   private onBubbleVisibilityChange?: (hasBubble: boolean) => void;
@@ -138,6 +140,7 @@ export class SpeechBubbleManager {
     // Auto-advance with dynamic reading time (~2s base + word calculation) and allow instant click-to-advance
     // Only stay sticky if item.sticky === true
     const isSticky = item.sticky === true;
+    this.shownAt = performance.now();
     if (!isSticky) {
       const words = (item.message || '').trim().split(/\s+/).filter(Boolean).length;
       let duration = Math.max(2500, 2000 + words * 180);
@@ -151,10 +154,23 @@ export class SpeechBubbleManager {
         duration = Math.min(duration, 3000);
       }
 
+      this.hideAt = this.shownAt + duration;
       this.timer = window.setTimeout(() => {
         this.dismiss();
       }, duration);
+    } else {
+      this.hideAt = 0;
     }
+  }
+
+  public getDebugState() {
+    return {
+      text: this.activeItem?.message || '',
+      shownAt: this.shownAt,
+      hideAt: this.hideAt,
+      queueLen: this.queue.length,
+      sticky: this.activeItem?.sticky ?? false,
+    };
   }
 
   private handleOptionSelection(
@@ -222,6 +238,7 @@ export class SpeechBubbleManager {
 
   public dismiss(): void {
     this.clearTimer();
+    this.hideAt = 0;
     const bubble = this.container.querySelector('.bubble');
     if (bubble) {
       bubble.classList.add('dismissing');

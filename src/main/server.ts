@@ -1,11 +1,14 @@
 import http from 'http';
+import { BrowserWindow } from 'electron';
 import type { NotifyPayload, MascotState, UserChoice, SystemTelemetry } from '../types';
+import { DEBUG, snapshot, getState, click, setBandaid, calibrate } from './debug';
 
 export interface ServerCallbacks {
   onNotify: (payload: NotifyPayload) => void;
   onToggleRaycast?: () => void;
   onPlaySound?: (clipOrEvent: string) => void;
   getTelemetry?: () => SystemTelemetry | null;
+  getBrowserWindow?: () => BrowserWindow | null;
 }
 
 export class NotifyServer {
@@ -149,6 +152,100 @@ export class NotifyServer {
         prompt: nextChoice ? nextChoice.label : null,
         data: nextChoice,
       });
+      return;
+    }
+
+    // Debug endpoints (strictly require CHIIKAWA_DEBUG=1 AND valid Bearer token)
+    if (url.startsWith('/debug/')) {
+      if (!DEBUG) {
+        this.sendJsonResponse(res, 404, { error: 'Not Found' });
+        return;
+      }
+
+      const authHeader = req.headers['authorization'];
+      if (!authHeader || !authHeader.startsWith('Bearer ') || authHeader.slice(7).trim() !== this.token) {
+        this.sendJsonResponse(res, 401, { error: 'Unauthorized: Invalid or missing Bearer token' });
+        return;
+      }
+
+      const win = this.callbacks.getBrowserWindow ? this.callbacks.getBrowserWindow() : null;
+      if (!win || win.isDestroyed()) {
+        this.sendJsonResponse(res, 503, { error: 'Window not available' });
+        return;
+      }
+
+      // GET /debug/snapshot?name=...
+      if (method === 'GET' && url.startsWith('/debug/snapshot')) {
+        const parsedUrl = new URL(url, 'http://127.0.0.1');
+        const name = parsedUrl.searchParams.get('name') || 'snap';
+        snapshot(win, name)
+          .then((result) => this.sendJsonResponse(res, 200, { ok: true, ...result }))
+          .catch((err) => this.sendJsonResponse(res, 500, { error: String(err) }));
+        return;
+      }
+
+      // GET /debug/state
+      if (method === 'GET' && (url === '/debug/state' || url === '/debug/state/')) {
+        getState(win)
+          .then((state) => this.sendJsonResponse(res, 200, { ok: true, state }))
+          .catch((err) => this.sendJsonResponse(res, 500, { error: String(err) }));
+        return;
+      }
+
+      // POST /debug/click { x, y, count }
+      if (method === 'POST' && (url === '/debug/click' || url === '/debug/click/')) {
+        let body = '';
+        req.on('data', (c) => (body += c));
+        req.on('end', async () => {
+          try {
+            const data = JSON.parse(body || '{}');
+            const x = Number(data.x ?? 0);
+            const y = Number(data.y ?? 0);
+            const count = Number(data.count ?? 1);
+            await click(win, x, y, count);
+            this.sendJsonResponse(res, 200, { ok: true, clicked: { x, y, count } });
+          } catch (e: any) {
+            this.sendJsonResponse(res, 400, { error: e.message || 'Invalid JSON' });
+          }
+        });
+        return;
+      }
+
+      // POST /debug/bandaid { visible: boolean }
+      if (method === 'POST' && (url === '/debug/bandaid' || url === '/debug/bandaid/')) {
+        let body = '';
+        req.on('data', (c) => (body += c));
+        req.on('end', async () => {
+          try {
+            const data = JSON.parse(body || '{}');
+            await setBandaid(win, Boolean(data.visible));
+            this.sendJsonResponse(res, 200, { ok: true, visible: Boolean(data.visible) });
+          } catch (e: any) {
+            this.sendJsonResponse(res, 400, { error: e.message || 'Invalid JSON' });
+          }
+        });
+        return;
+      }
+
+      // POST /debug/calibrate { px, py }
+      if (method === 'POST' && (url === '/debug/calibrate' || url === '/debug/calibrate/')) {
+        let body = '';
+        req.on('data', (c) => (body += c));
+        req.on('end', async () => {
+          try {
+            const data = JSON.parse(body || '{}');
+            const px = Number(data.px);
+            const py = Number(data.py);
+            const resData = await calibrate(win, px, py);
+            this.sendJsonResponse(res, 200, { ok: true, anchor: resData });
+          } catch (e: any) {
+            this.sendJsonResponse(res, 400, { error: e.message || 'Invalid JSON' });
+          }
+        });
+        return;
+      }
+
+      this.sendJsonResponse(res, 404, { error: 'Unknown debug route' });
       return;
     }
 

@@ -17,9 +17,11 @@ export interface ElectronAPI {
   blurWindow: () => void;
   notifyDismissed: () => void;
   rendererReady: () => void;
+  isDebug: boolean;
 }
 
 const api: ElectronAPI = {
+  isDebug: process.env.CHIIKAWA_DEBUG === '1',
   onNotify: (callback) => {
     const handler = (_event: Electron.IpcRendererEvent, payload: NotifyPayload) => callback(payload);
     ipcRenderer.on('mascot:notify', handler);
