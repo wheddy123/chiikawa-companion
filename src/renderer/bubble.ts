@@ -135,10 +135,22 @@ export class SpeechBubbleManager {
     }
 
     // Auto-dismiss logic:
-    // If has options or state === 'alert' or item.sticky === true, hold until user acts
-    const isSticky = hasOptions || item.state === 'alert' || item.sticky === true;
+    // Auto-advance with dynamic reading time (~2s base + word calculation) and allow instant click-to-advance
+    // Only stay sticky if item.sticky === true
+    const isSticky = item.sticky === true;
     if (!isSticky) {
-      const duration = item.duration_ms && item.duration_ms > 0 ? item.duration_ms : 5000;
+      const words = (item.message || '').trim().split(/\s+/).filter(Boolean).length;
+      let duration = Math.max(2500, 2000 + words * 180);
+
+      if (item.duration_ms && item.duration_ms > 0) {
+        duration = item.duration_ms;
+      }
+
+      // If multiple items are waiting in the queue, cap duration to keep messages advancing
+      if (this.queue.length > 0) {
+        duration = Math.min(duration, 3000);
+      }
+
       this.timer = window.setTimeout(() => {
         this.dismiss();
       }, duration);

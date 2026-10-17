@@ -121,15 +121,24 @@ export class ProceduralAnimator {
     const mascotCenterX = winBounds.x + winBounds.width / 2;
     const mascotCenterY = winBounds.y + winBounds.height * 0.72;
 
+    const screenDist = Math.hypot(cursor.x - mascotCenterX, cursor.y - mascotCenterY);
+    if (screenDist > 280) {
+      // Cursor is elsewhere on desktop: Chiikawa sits calmly facing front
+      this.cursorTargetRotY = 0;
+      this.cursorTargetRotX = 0;
+      return;
+    }
+
     const dx = (cursor.x - mascotCenterX) / Math.max(winBounds.width, 320);
     const dy = (cursor.y - mascotCenterY) / Math.max(winBounds.height, 320);
 
-    // Natural head rotation angles for a seated character looking at cursor
-    const maxAngleX = THREE.MathUtils.degToRad(12);
-    const maxAngleY = THREE.MathUtils.degToRad(16);
+    // Very gentle subtle glance only when cursor is in immediate proximity
+    const proximity = 1.0 - screenDist / 280;
+    const maxAngleX = THREE.MathUtils.degToRad(3);
+    const maxAngleY = THREE.MathUtils.degToRad(4);
 
-    this.cursorTargetRotY = THREE.MathUtils.clamp(dx * maxAngleY, -maxAngleY, maxAngleY);
-    this.cursorTargetRotX = THREE.MathUtils.clamp(dy * maxAngleX, -maxAngleX, maxAngleX);
+    this.cursorTargetRotY = THREE.MathUtils.clamp(dx * maxAngleY * proximity, -maxAngleY, maxAngleY);
+    this.cursorTargetRotX = THREE.MathUtils.clamp(dy * maxAngleX * proximity, -maxAngleX, maxAngleX);
   }
 
   public setDragging(dragging: boolean, vx: number = 0, vy: number = 0): void {
@@ -191,28 +200,28 @@ export class ProceduralAnimator {
       this.currentRotation.z = targetPose.rot.z;
     }
 
-    // 🩹 Brief comical muffled struggle animation when muted ("vung tay vung chân")
+    // 🩹 Brief comical struggle animation when muted ("vung tay vung chân")
     if (this.isMuted && !this.isDragging) {
       if (this.struggleTimer > 0) {
         this.struggleTimer = Math.max(0, this.struggleTimer - delta);
-        const intensity = Math.min(1.0, this.struggleTimer / 1.0);
+        const intensity = Math.min(1.0, this.struggleTimer / 0.8);
         const struggleTime = this.stateTime;
 
-        // Frantic comical wobbling that decays smoothly
-        this.currentRotation.z += Math.sin(struggleTime * 24.0) * (0.09 * intensity);
-        this.currentRotation.x += Math.cos(struggleTime * 20.0) * (0.05 * intensity);
-        this.currentRotation.y += Math.sin(struggleTime * 16.0) * (0.06 * intensity);
+        // Cute comical protest wiggles
+        this.currentRotation.z += Math.sin(struggleTime * 18.0) * (0.05 * intensity);
+        this.currentRotation.x += Math.cos(struggleTime * 14.0) * (0.03 * intensity);
+        this.currentRotation.y += Math.sin(struggleTime * 12.0) * (0.04 * intensity);
 
-        // Panicked squishing and stretching
-        const squish = 1.0 + Math.sin(struggleTime * 18.0) * (0.06 * intensity);
+        // Soft squish
+        const squish = 1.0 + Math.sin(struggleTime * 14.0) * (0.04 * intensity);
         this.currentScale.y *= squish;
         this.currentScale.x /= Math.sqrt(squish);
 
-        // Frantic little hops
-        this.currentPosition.y += Math.abs(Math.sin(struggleTime * 12.0)) * (0.06 * intensity);
+        // Tiny cute hops
+        this.currentPosition.y += Math.abs(Math.sin(struggleTime * 10.0)) * (0.03 * intensity);
       } else {
-        // Settled into calm cute sulking pose with bandage on
-        this.currentRotation.x -= 0.03; // slight cute pout
+        // Settled into calm posture with bandage on
+        this.currentRotation.x = -0.02;
       }
     }
 
@@ -271,17 +280,17 @@ export class ProceduralAnimator {
 
     switch (state) {
       case 'idle': {
-        // Rock-steady calm & peaceful idle: very slow, gentle natural breathing
-        const breathe = Math.sin(t * 1.0);
-        const breatheAmp = 0.005;
+        // Rock-steady tranquil idle: subtle living breath, zero restless sway
+        const breathe = Math.sin(t * 0.9);
+        const breatheAmp = 0.003;
 
         scale.y *= 1 + breathe * breatheAmp;
         scale.x *= 1 - breathe * (breatheAmp * 0.4);
         scale.z *= 1 - breathe * (breatheAmp * 0.4);
 
-        // Very slow, calm, peaceful head posture (no jitter, no tremble!)
-        rot.x = -0.03 + Math.sin(t * 0.7) * 0.005;
-        rot.z = Math.sin(t * 0.5) * 0.006;
+        rot.x = -0.02; // gentle face-up towards user
+        rot.y = 0;
+        rot.z = 0;
         break;
       }
 
@@ -320,15 +329,12 @@ export class ProceduralAnimator {
       }
 
       case 'alert': {
-        // Sits up with perked ears and rapid anxious breath
-        rot.x = -0.09; // heads up
-        const tremor = Math.sin(t * 36.0) * 0.012;
-        pos.x += tremor;
-        rot.z = Math.sin(t * 30.0) * 0.035;
-
-        const rapidBreath = Math.abs(Math.sin(t * 9.0)) * 0.03;
-        pos.y += rapidBreath;
-        scale.y *= 1 + rapidBreath * 0.08;
+        // Perked attentive posture (calm alertness, no jackhammer tremor)
+        rot.x = -0.05;
+        pos.y += 0.02;
+        const alertBreath = Math.sin(t * 3.5) * 0.006;
+        pos.y += alertBreath;
+        scale.y *= 1 + alertBreath * 0.03;
         break;
       }
 

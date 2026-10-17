@@ -145,7 +145,7 @@ export class MascotScene {
           // Create Band-Aid mesh for mute state (sticker covering Chiikawa's mouth)
           const bandaidTex = new THREE.TextureLoader().load('./bandaid.png');
           bandaidTex.colorSpace = THREE.SRGBColorSpace;
-          const bandaidGeo = new THREE.PlaneGeometry(0.60, 0.40);
+          const bandaidGeo = new THREE.PlaneGeometry(0.48, 0.36);
           const bandaidMat = new THREE.MeshBasicMaterial({
             map: bandaidTex,
             transparent: true,
@@ -156,8 +156,8 @@ export class MascotScene {
           this.bandaidMesh = new THREE.Mesh(bandaidGeo, bandaidMat);
           this.bandaidMesh.name = 'BandaidMouth';
           // Position right on Chiikawa's mouth between pink blush cheeks
-          this.bandaidMesh.position.set(0, 0.84, 1.255);
-          this.bandaidMesh.rotation.set(0.04, 0, -0.15);
+          this.bandaidMesh.position.set(0, 0.67, 1.285);
+          this.bandaidMesh.rotation.set(-0.31, 0, -0.08);
           this.bandaidMesh.visible = false;
           gltf.scene.add(this.bandaidMesh);
 

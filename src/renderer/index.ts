@@ -139,39 +139,24 @@ async function init() {
   };
 
   let lastClickTimestamp = 0;
-
-  const endDrag = () => {
-    if (!isDragging) return;
-    isDragging = false;
-    animator.setDragging(false);
-
-    if (!hasMoved) {
-      const now = performance.now();
-      if (now - lastClickTimestamp < 420) {
-        // Consecutive quick clicks: Double click detected!
-        lastClickTimestamp = 0;
-        toggleMute();
-      } else {
-        lastClickTimestamp = now;
-        // Single click on mascot body: playful happy hop + cute reaction sound (if unmuted)
-        animator.setState('success');
-        if (soundManager.isEnabled()) {
-          soundManager.playRandomReaction();
-        }
-        setTimeout(() => {
-          if (!bubbleManager.hasActiveBubble()) {
-            animator.setState('idle');
-          }
-        }, 1500);
-      }
-    }
-
-    // Re-evaluate hover hit test after drop
-    updateHitTest(latestCursor, latestBounds);
-  };
+  let lastToggleTime = 0;
+  let singleClickTimeout: number | null = null;
 
   // Double-click on Chiikawa to toggle mute with cute band-aid sticker!
   const toggleMute = () => {
+    const now = performance.now();
+    // 500ms debounce guard: prevents double-triggering when both manual click detection and native dblclick fire
+    if (now - lastToggleTime < 500) {
+      return;
+    }
+    lastToggleTime = now;
+
+    // Cancel pending single-click reaction
+    if (singleClickTimeout !== null) {
+      clearTimeout(singleClickTimeout);
+      singleClickTimeout = null;
+    }
+
     const currentlyMuted = !soundManager.isEnabled();
     const nextMuted = !currentlyMuted;
     soundManager.setEnabled(!nextMuted);
@@ -184,7 +169,8 @@ async function init() {
         state: 'alert',
         message: 'Mmmph!! Mmph-yaaa!! 🩹\n(Chiikawa đã bị dán băng keo bịt mồm & tắt tiếng. Nhấn đúp để gỡ!)',
         source: 'chiikawa',
-        duration_ms: 4500,
+        duration_ms: 3200,
+        sticky: false,
       });
     } else {
       bubbleManager.enqueue({
@@ -192,9 +178,52 @@ async function init() {
         message: 'Haaa~! Thoát rồi! Đã gỡ băng keo & bật lại âm thanh 🎵',
         source: 'chiikawa',
         sound: 'usagi_yaha',
-        duration_ms: 3500,
+        duration_ms: 2800,
+        sticky: false,
       });
     }
+  };
+
+  const endDrag = () => {
+    if (!isDragging) return;
+    isDragging = false;
+    animator.setDragging(false);
+
+    if (!hasMoved) {
+      const now = performance.now();
+      if (now - lastClickTimestamp < 380) {
+        // Consecutive quick clicks: Double click detected!
+        lastClickTimestamp = 0;
+        if (singleClickTimeout !== null) {
+          clearTimeout(singleClickTimeout);
+          singleClickTimeout = null;
+        }
+        toggleMute();
+      } else {
+        lastClickTimestamp = now;
+        // Delay single click reaction so double click cancels it cleanly
+        if (singleClickTimeout !== null) {
+          clearTimeout(singleClickTimeout);
+        }
+        singleClickTimeout = window.setTimeout(() => {
+          singleClickTimeout = null;
+          if (animator.isIdle() && !bubbleManager.hasActiveBubble()) {
+            animator.setState('success');
+            if (soundManager.isEnabled()) {
+              soundManager.playRandomReaction();
+            }
+            setTimeout(() => {
+              if (!bubbleManager.hasActiveBubble()) {
+                animator.setState('idle');
+              }
+            }, 1200);
+          }
+        }, 280);
+      }
+    }
+
+    // Re-evaluate hover hit test after drop
+    updateHitTest(latestCursor, latestBounds);
   };
 
   window.addEventListener('dblclick', (e: MouseEvent) => {
@@ -205,6 +234,10 @@ async function init() {
 
     const hit = scene.hitTestClient(e.clientX, e.clientY);
     if (hit) {
+      if (singleClickTimeout !== null) {
+        clearTimeout(singleClickTimeout);
+        singleClickTimeout = null;
+      }
       toggleMute();
     }
   });
