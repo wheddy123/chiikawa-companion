@@ -60,16 +60,11 @@ async function init() {
     }
   );
 
-  // Load Chiikawa 3D GLB model (seated desk-companion pose)
+  // Load original pristine Chiikawa 3D model
   try {
-    await scene.loadModel('./chiikawa_sitting.glb');
+    await scene.loadModel('./chiikawa.glb');
   } catch (err) {
-    console.warn('Fallback loading ./chiikawa.glb...', err);
-    try {
-      await scene.loadModel('./chiikawa.glb');
-    } catch (err2) {
-      console.error('All model load attempts failed:', err2);
-    }
+    console.error('Failed to load chiikawa.glb:', err);
   }
 
   // Start rendering
@@ -124,6 +119,7 @@ async function init() {
       hasMoved = false;
       dragStartX = e.screenX;
       dragStartY = e.screenY;
+      animator.setDragging(true, 0, 0);
     }
   });
 
@@ -136,8 +132,8 @@ async function init() {
         dragStartX = e.screenX;
         dragStartY = e.screenY;
         window.electronAPI?.moveWindowBy(dx, dy);
-        // 🐾 Trigger squishy stretching and squirming!
-        animator.setDragging(true, dx * 1.8, dy * 1.8);
+        // 🐾 Trigger smooth squishy drag response
+        animator.setDragging(true, dx * 1.2, dy * 1.2);
       }
     }
   });

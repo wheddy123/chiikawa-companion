@@ -31,9 +31,10 @@ export class ProceduralAnimator {
   // Reduced motion preference
   private reducedMotion: boolean = false;
 
-  // Drag squish & squirm physics
+  // Drag squish & gentle dangling physics
   private isDragging: boolean = false;
   private dragVelocity = new THREE.Vector2(0, 0);
+  private smoothedDragVelocity = new THREE.Vector2(0, 0);
   private releaseSpringTime: number = 999;
 
   constructor() {
@@ -96,9 +97,12 @@ export class ProceduralAnimator {
   public setDragging(dragging: boolean, vx: number = 0, vy: number = 0): void {
     if (this.isDragging && !dragging) {
       this.releaseSpringTime = 0;
+      this.dragVelocity.set(0, 0);
     }
     this.isDragging = dragging;
-    this.dragVelocity.set(vx, vy);
+    if (dragging) {
+      this.dragVelocity.set(vx, vy);
+    }
   }
 
   public update(delta: number): void {
@@ -145,30 +149,47 @@ export class ProceduralAnimator {
       this.currentRotation.z = targetPose.rot.z;
     }
 
-    // 🐾 Apply squishy drag deformation and frantic squirming/dangling
+    // 🐾 Apply soft mochi squishy drag & gentle cute dangling
     if (this.isDragging) {
-      const speed = Math.hypot(this.dragVelocity.x, this.dragVelocity.y);
-      const stretch = 1.0 + Math.min(0.28, speed * 0.01 + 0.14);
+      // Exponential smoothing on drag velocity for liquid motion
+      const velDamp = 1.0 - Math.exp(-12.0 * delta);
+      this.smoothedDragVelocity.lerp(this.dragVelocity, velDamp);
+      // Decay instantaneous input velocity when mouse is stationary
+      this.dragVelocity.multiplyScalar(Math.exp(-8.0 * delta));
+
+      const speed = this.smoothedDragVelocity.length();
+
+      // Lift slightly off desk while carried
+      this.currentPosition.y += 0.06;
+
+      // Soft dough stretch based on drag speed (max 10% stretch)
+      const stretch = 1.03 + Math.min(0.08, speed * 0.005);
       this.currentScale.y *= stretch;
       this.currentScale.x /= Math.sqrt(stretch);
       this.currentScale.z /= Math.sqrt(stretch);
 
-      // Inertia tilt lagging against mouse motion
-      this.currentRotation.z -= THREE.MathUtils.clamp(this.dragVelocity.x * 0.02, -0.25, 0.25);
-      this.currentRotation.x += THREE.MathUtils.clamp(this.dragVelocity.y * 0.018, -0.2, 0.2);
+      // Smooth subtle inertia tilt trailing cursor motion
+      const tiltZ = -THREE.MathUtils.clamp(this.smoothedDragVelocity.x * 0.012, -0.16, 0.16);
+      const tiltX = THREE.MathUtils.clamp(this.smoothedDragVelocity.y * 0.010, -0.12, 0.12);
+      this.currentRotation.z += tiltZ;
+      this.currentRotation.x += tiltX;
 
-      // Frantic cute dangling squirm while lifted up
-      const squirm = Math.sin(this.stateTime * 28.0) * 0.12;
-      this.currentRotation.z += squirm;
-      this.currentPosition.y += Math.abs(Math.sin(this.stateTime * 22.0)) * 0.07;
-      this.currentPosition.x += Math.sin(this.stateTime * 24.0) * 0.035;
-    } else if (this.releaseSpringTime < 0.5) {
-      // Jello spring rebound after release back onto desk edge
-      this.releaseSpringTime += delta;
-      const spring = Math.sin(this.releaseSpringTime * 20.0) * Math.exp(-this.releaseSpringTime * 8.0) * 0.18;
-      this.currentScale.y *= 1.0 - spring;
-      this.currentScale.x *= 1.0 + spring * 0.5;
-      this.currentScale.z *= 1.0 + spring * 0.5;
+      // Gentle, calm dangling sway (relaxed pendulum instead of chaotic jitter)
+      const gentleDangle = Math.sin(this.stateTime * 6.0) * 0.035;
+      this.currentRotation.z += gentleDangle;
+      this.currentPosition.x += Math.sin(this.stateTime * 5.0) * 0.015;
+    } else {
+      // Smoothly reset smoothed velocity when not dragging
+      this.smoothedDragVelocity.set(0, 0);
+
+      if (this.releaseSpringTime < 0.45) {
+        // Soft jello spring rebound upon landing back on desk
+        this.releaseSpringTime += delta;
+        const spring = Math.sin(this.releaseSpringTime * 16.0) * Math.exp(-this.releaseSpringTime * 9.0) * 0.10;
+        this.currentScale.y *= 1.0 - spring;
+        this.currentScale.x *= 1.0 + spring * 0.5;
+        this.currentScale.z *= 1.0 + spring * 0.5;
+      }
     }
   }
 

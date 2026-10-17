@@ -36,8 +36,8 @@ export class MascotScene {
     const width = container.clientWidth || 280;
     const height = container.clientHeight || 200;
     this.camera = new THREE.PerspectiveCamera(30, width / height, 0.1, 100);
-    this.camera.position.set(0, -0.18, 4.4);
-    this.camera.lookAt(0, -0.22, 0);
+    this.camera.position.set(0, 0.20, 5.0);
+    this.camera.lookAt(0, -0.30, 0);
 
     // 3. Renderer with absolute transparency and antialiasing for crisp round curves
     this.renderer = new THREE.WebGLRenderer({
@@ -129,12 +129,12 @@ export class MascotScene {
           gltf.scene.position.z = -center.z;
 
           // Scale to fit comfortably in viewport
-          const targetHeight = 1.82;
+          const targetHeight = 1.68;
           const scale = targetHeight / Math.max(size.y, 0.001);
           this.modelRoot.scale.set(scale, scale, scale);
 
-          // Position seated mascot resting solidly on bottom ledge
-          const initialPos = new THREE.Vector3(0, -0.92, 0);
+          // Position mascot resting cleanly on bottom ledge with feet fully visible
+          const initialPos = new THREE.Vector3(0, -1.30, 0);
           this.modelRoot.position.copy(initialPos);
 
           this.modelRoot.add(gltf.scene);
