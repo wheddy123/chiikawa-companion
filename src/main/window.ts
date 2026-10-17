@@ -95,6 +95,15 @@ export class WindowManager {
       }
     });
 
+    ipcMain.on('window:move-to', (_event, x: number, y: number) => {
+      if (this.window && !this.window.isDestroyed()) {
+        this.window.setPosition(Math.round(x), Math.round(y));
+        if (this.onWindowMoved) {
+          this.onWindowMoved();
+        }
+      }
+    });
+
     ipcMain.on('window:focus', () => {
       if (this.window && !this.window.isDestroyed()) {
         if (process.platform === 'darwin') {
@@ -128,7 +137,7 @@ export class WindowManager {
   private startCursorPolling(): void {
     if (this.cursorPollTimer) return;
 
-    // ~30Hz polling interval (33ms)
+    // 60Hz polling interval (16ms) for liquid-smooth dragging and cursor tracking
     this.cursorPollTimer = setInterval(() => {
       if (!this.window || this.window.isDestroyed() || !this.window.isVisible()) {
         return;
@@ -141,7 +150,7 @@ export class WindowManager {
       } catch (e) {
         // Window might be destroyed during poll
       }
-    }, 33);
+    }, 16);
   }
 
   private stopCursorPolling(): void {

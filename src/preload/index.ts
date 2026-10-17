@@ -9,6 +9,7 @@ export interface ElectronAPI {
   onPlaySound: (callback: (clipOrEvent: string) => void) => () => void;
   setIgnoreMouseEvents: (ignore: boolean, forward?: boolean) => void;
   moveWindowBy: (dx: number, dy: number) => void;
+  moveWindowTo: (x: number, y: number) => void;
   focusWindow: () => void;
   blurWindow: () => void;
   notifyDismissed: () => void;
@@ -50,6 +51,9 @@ const api: ElectronAPI = {
   },
   moveWindowBy: (dx: number, dy: number) => {
     ipcRenderer.send('window:move-by', dx, dy);
+  },
+  moveWindowTo: (x: number, y: number) => {
+    ipcRenderer.send('window:move-to', x, y);
   },
   focusWindow: () => {
     ipcRenderer.send('window:focus');

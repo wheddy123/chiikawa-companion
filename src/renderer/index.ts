@@ -70,10 +70,23 @@ async function init() {
   // Start rendering
   scene.startRenderLoop();
 
-  // Mouse hit-testing state tracking
+  // Mouse hit-testing & full-screen drag tracking
   let isMouseHovering = false;
+  let isDragging = false;
+  let dragGrabOffsetX = 0;
+  let dragGrabOffsetY = 0;
+  let lastDragScreenX = 0;
+  let lastDragScreenY = 0;
+  let hasMoved = false;
+  let latestBounds: WindowBounds = { x: 0, y: 0, width: 280, height: 320 };
+  let latestCursor: CursorPosition = { x: 0, y: 0 };
 
   const updateHitTest = (cursor: CursorPosition, winBounds: WindowBounds) => {
+    // When actively dragging, NEVER ignore mouse events or interrupt drag!
+    if (isDragging) {
+      return;
+    }
+
     // Check if cursor is over speech bubble (including quick-choice buttons)
     const bubbleEl = bubbleManager.getActiveBubbleElement();
     let hitBubble = false;
@@ -101,11 +114,49 @@ async function init() {
     }
   };
 
-  // Drag and click handling for Chiikawa mascot with squish physics
-  let isDragging = false;
-  let dragStartX = 0;
-  let dragStartY = 0;
-  let hasMoved = false;
+  // Drag movement handler: pins mascot precisely to cursor at grab offset anywhere on desktop
+  const handleDragMove = (screenX: number, screenY: number) => {
+    if (!isDragging) return;
+
+    const dx = screenX - lastDragScreenX;
+    const dy = screenY - lastDragScreenY;
+
+    if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+      hasMoved = true;
+      lastDragScreenX = screenX;
+      lastDragScreenY = screenY;
+
+      // Absolute target coordinates on screen
+      const targetX = Math.round(screenX - dragGrabOffsetX);
+      const targetY = Math.round(screenY - dragGrabOffsetY);
+
+      latestBounds.x = targetX;
+      latestBounds.y = targetY;
+
+      window.electronAPI?.moveWindowTo(targetX, targetY);
+      animator.setDragging(true, dx * 1.2, dy * 1.2);
+    }
+  };
+
+  const endDrag = () => {
+    if (!isDragging) return;
+    isDragging = false;
+    animator.setDragging(false);
+
+    if (!hasMoved) {
+      // Clicked on mascot without dragging: playful happy hop + random cute reaction sound!
+      animator.setState('success');
+      soundManager.playRandomReaction();
+      setTimeout(() => {
+        if (!bubbleManager.hasActiveBubble()) {
+          animator.setState('idle');
+        }
+      }, 1500);
+    }
+
+    // Re-evaluate hover hit test after drop
+    updateHitTest(latestCursor, latestBounds);
+  };
 
   window.addEventListener('mousedown', (e: MouseEvent) => {
     // Check if clicked on speech bubble
@@ -117,45 +168,29 @@ async function init() {
     if (isMouseHovering) {
       isDragging = true;
       hasMoved = false;
-      dragStartX = e.screenX;
-      dragStartY = e.screenY;
+      dragGrabOffsetX = e.screenX - latestBounds.x;
+      dragGrabOffsetY = e.screenY - latestBounds.y;
+      lastDragScreenX = e.screenX;
+      lastDragScreenY = e.screenY;
+
+      // Lock mouse capture to window during drag
+      window.electronAPI?.setIgnoreMouseEvents(false);
       animator.setDragging(true, 0, 0);
     }
   });
 
   window.addEventListener('mousemove', (e: MouseEvent) => {
     if (isDragging) {
-      const dx = e.screenX - dragStartX;
-      const dy = e.screenY - dragStartY;
-      if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
-        hasMoved = true;
-        dragStartX = e.screenX;
-        dragStartY = e.screenY;
-        window.electronAPI?.moveWindowBy(dx, dy);
-        // 🐾 Trigger smooth squishy drag response
-        animator.setDragging(true, dx * 1.2, dy * 1.2);
+      // If mouse button was released
+      if (e.buttons === 0) {
+        endDrag();
+        return;
       }
+      handleDragMove(e.screenX, e.screenY);
     }
   });
 
-  window.addEventListener('mouseup', () => {
-    if (isDragging) {
-      // 🐾 Release jello spring rebound
-      animator.setDragging(false);
-
-      if (!hasMoved) {
-        // Clicked on mascot without dragging: playful happy hop + random cute reaction sound!
-        animator.setState('success');
-        soundManager.playRandomReaction();
-        setTimeout(() => {
-          if (!bubbleManager.hasActiveBubble()) {
-            animator.setState('idle');
-          }
-        }, 1500);
-      }
-    }
-    isDragging = false;
-  });
+  window.addEventListener('mouseup', endDrag);
 
   // IPC listeners from preload
   if (window.electronAPI) {
@@ -164,8 +199,19 @@ async function init() {
     });
 
     window.electronAPI.onCursor((pos: CursorPosition, winBounds: WindowBounds) => {
+      latestCursor = pos;
+      if (!isDragging) {
+        latestBounds = winBounds;
+      }
+
       animator.updateCursor(pos, winBounds);
-      updateHitTest(pos, winBounds);
+
+      if (!isDragging) {
+        updateHitTest(pos, winBounds);
+      } else {
+        // Feed OS-level cursor position into drag movement as well
+        handleDragMove(pos.x, pos.y);
+      }
     });
 
     window.electronAPI.onVisibility((visible: boolean) => {
