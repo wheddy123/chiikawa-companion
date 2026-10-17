@@ -180,135 +180,80 @@ canvas {
   background: transparent !important;
 }
 
-/* Chat container & UI */
-.chat-container {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  right: 10px;
+/* Interactive quick-action buttons inside bubble */
+.bubble.has-options {
+  padding-bottom: 10px;
+}
+
+.bubble-options {
   display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
   justify-content: center;
   align-items: center;
-  z-index: 25;
-  pointer-events: auto;
-  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(0, 0, 0, 0.08);
 }
 
-.chat-container.hidden {
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(-8px) scale(0.95);
-}
-
-.chat-box {
-  width: 100%;
-  max-width: 260px;
-  background: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: 14px;
-  padding: 8px 10px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.08);
-  border: 1.5px solid rgba(147, 197, 253, 0.7);
-}
-
-.chat-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 6px;
-}
-
-.chat-title {
-  font-size: 11px;
-  font-weight: 700;
-  color: #2563eb;
-}
-
-.chat-close-btn {
-  background: none;
+.bubble-btn {
+  appearance: none;
   border: none;
-  font-size: 16px;
-  line-height: 1;
-  color: #94a3b8;
-  cursor: pointer;
-  padding: 0 4px;
-}
-.chat-close-btn:hover {
-  color: #475569;
-}
-
-.chat-input-row {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-
-#chat-input {
-  flex: 1;
-  border: 1px solid #cbd5e1;
-  border-radius: 10px;
-  padding: 6px 10px;
-  font-size: 12px;
   outline: none;
-  color: #1e293b;
-  background: #f8fafc;
-  user-select: text !important;
-  -webkit-user-select: text !important;
-  pointer-events: auto !important;
-  cursor: text;
-}
-#chat-input:focus {
-  border-color: #3b82f6;
-  background: #ffffff;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-}
-
-.chat-send-btn {
-  background: #3b82f6;
-  color: #ffffff;
-  border: none;
-  border-radius: 10px;
-  padding: 5px 10px;
+  padding: 5px 12px;
+  border-radius: 12px;
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s ease;
-}
-.chat-send-btn:hover {
-  background: #2563eb;
-}
-
-/* Chat toggle button */
-.chat-toggle-btn {
-  position: absolute;
-  bottom: 12px;
-  right: 12px;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
-  cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 15px;
+  gap: 4px;
+  line-height: 1.2;
+  transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
   pointer-events: auto;
-  z-index: 15;
-  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.15s ease;
 }
-.chat-toggle-btn:hover {
-  transform: scale(1.15);
-  background: #ffffff;
+
+.bubble-btn:hover {
+  transform: translateY(-1.5px) scale(1.03);
+}
+
+.bubble-btn:active, .bubble-btn.selected {
+  transform: scale(0.95);
+}
+
+.bubble-btn-primary {
+  background: #10b981;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+}
+.bubble-btn-primary:hover {
+  background: #059669;
+}
+
+.bubble-btn-danger {
+  background: #ef4444;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.35);
+}
+.bubble-btn-danger:hover {
+  background: #dc2626;
+}
+
+.bubble-btn-secondary {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+.bubble-btn-secondary:hover {
+  background: #e2e8f0;
+  color: #0f172a;
 }
 
 /* Reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
-  .bubble, .bubble.state-alert, .chat-container, .chat-toggle-btn {
+  .bubble, .bubble.state-alert, .bubble-btn {
     animation: none !important;
     transition: opacity 0.1s ease !important;
   }

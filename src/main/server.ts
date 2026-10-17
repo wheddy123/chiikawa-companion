@@ -1,5 +1,5 @@
 import http from 'http';
-import type { NotifyPayload, MascotState } from '../types';
+import type { NotifyPayload, MascotState, UserChoice } from '../types';
 
 export interface ServerCallbacks {
   onNotify: (payload: NotifyPayload) => void;
@@ -16,8 +16,13 @@ export class NotifyServer {
   // Rate limiter: sliding window count
   private requestTimestamps: number[] = [];
   private readonly MAX_REQUESTS_PER_SECOND = 40;
-  private readonly MAX_BODY_BYTES = 4096; // 4KB
-  private pendingPrompts: string[] = [];
+  private readonly MAX_BODY_BYTES = 8192; // 8KB
+  private pendingChoices: UserChoice[] = [];
+  private choiceWaiters: Array<{
+    questionId?: string;
+    res: http.ServerResponse;
+    timer: NodeJS.Timeout;
+  }> = [];
 
   constructor(port: number, token: string, callbacks: ServerCallbacks) {
     this.port = port;
@@ -50,6 +55,13 @@ export class NotifyServer {
 
   public stop(): Promise<void> {
     return new Promise((resolve) => {
+      // Clear any waiting choice requests
+      for (const waiter of this.choiceWaiters) {
+        clearTimeout(waiter.timer);
+        this.sendJsonResponse(waiter.res, 503, { error: 'Server shutting down' });
+      }
+      this.choiceWaiters = [];
+
       if (this.server) {
         this.server.close(() => resolve());
       } else {
@@ -82,7 +94,6 @@ export class NotifyServer {
     }
 
     // 3. No CORS headers are attached (blocks cross-origin web browser fetch/XHR)
-
     const url = req.url || '';
     const method = req.method || 'GET';
 
@@ -92,16 +103,30 @@ export class NotifyServer {
       return;
     }
 
-    // Route: POST /chat/input (called from local renderer chat UI)
-    if (method === 'POST' && (url === '/chat/input' || url === '/chat/input/')) {
+    // Route: POST /action/choice (called from local renderer when user clicks an option)
+    if (method === 'POST' && (url === '/action/choice' || url === '/action/choice/' || url === '/chat/input')) {
       let body = '';
       req.on('data', (c) => (body += c));
       req.on('end', () => {
         try {
-          const data = JSON.parse(body);
-          if (data && data.prompt) {
-            this.pendingPrompts.push(String(data.prompt));
+          const choice: UserChoice = JSON.parse(body);
+          this.pendingChoices.push(choice);
+
+          // Resolve any waiting long-poll requests (from POST /ask)
+          const matchedWaiterIndex = this.choiceWaiters.findIndex(
+            (w) => !choice.questionId || !w.questionId || w.questionId === choice.questionId
+          );
+          if (matchedWaiterIndex !== -1) {
+            const waiter = this.choiceWaiters.splice(matchedWaiterIndex, 1)[0];
+            clearTimeout(waiter.timer);
+            this.sendJsonResponse(waiter.res, 200, {
+              ok: true,
+              choice: choice.id,
+              label: choice.label,
+              data: choice,
+            });
           }
+
           this.sendJsonResponse(res, 200, { ok: true });
         } catch (e) {
           this.sendJsonResponse(res, 400, { error: 'Invalid JSON' });
@@ -110,10 +135,19 @@ export class NotifyServer {
       return;
     }
 
-    // Route: GET /chat/prompt (fetch pending prompt for coding agent)
-    if (method === 'GET' && (url === '/chat/prompt' || url === '/chat/prompt/')) {
-      const nextPrompt = this.pendingPrompts.shift() || null;
-      this.sendJsonResponse(res, 200, { ok: true, prompt: nextPrompt });
+    // Route: GET /action/choice, /choice, /chat/prompt (fetch pending human choice for coding agent)
+    if (
+      method === 'GET' &&
+      (url === '/action/choice' || url === '/choice' || url === '/chat/prompt' || url === '/chat/prompt/')
+    ) {
+      const nextChoice = this.pendingChoices.shift() || null;
+      this.sendJsonResponse(res, 200, {
+        ok: true,
+        choice: nextChoice ? nextChoice.id : null,
+        label: nextChoice ? nextChoice.label : null,
+        prompt: nextChoice ? nextChoice.label : null,
+        data: nextChoice,
+      });
       return;
     }
 
@@ -121,6 +155,69 @@ export class NotifyServer {
     const authHeader = req.headers['authorization'];
     if (!authHeader || !authHeader.startsWith('Bearer ') || authHeader.slice(7).trim() !== this.token) {
       this.sendJsonResponse(res, 401, { error: 'Unauthorized: Invalid or missing Bearer token' });
+      return;
+    }
+
+    // Route: POST /ask (convenient blocking/non-blocking endpoint for agent questions)
+    if (method === 'POST' && (url === '/ask' || url === '/ask/')) {
+      let body = '';
+      req.on('data', (c) => (body += c));
+      req.on('end', () => {
+        try {
+          const data = JSON.parse(body);
+          const question = data.question || data.message;
+          if (!question || typeof question !== 'string') {
+            this.sendJsonResponse(res, 400, { error: 'Field "question" or "message" must be a non-empty string' });
+            return;
+          }
+
+          const qId = 'q_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+          const options = Array.isArray(data.options) && data.options.length > 0
+            ? data.options
+            : ['Đồng ý', 'Từ chối'];
+
+          const payload: NotifyPayload = {
+            id: qId,
+            state: data.state || 'alert',
+            message: question,
+            source: data.source || 'agent',
+            options: options,
+            sticky: true,
+            sound: data.sound || 'need_attention',
+          };
+
+          this.callbacks.onNotify(payload);
+
+          // If wait is explicitly false, return questionId immediately
+          if (data.wait === false) {
+            this.sendJsonResponse(res, 200, { ok: true, questionId: qId });
+            return;
+          }
+
+          // Default: wait for user's 1-click decision (default 60s timeout)
+          const timeoutMs =
+            typeof data.timeout_ms === 'number' && data.timeout_ms > 0
+              ? Math.min(data.timeout_ms, 300000)
+              : 60000;
+
+          const timer = setTimeout(() => {
+            const idx = this.choiceWaiters.findIndex((w) => w.questionId === qId);
+            if (idx !== -1) {
+              this.choiceWaiters.splice(idx, 1);
+              this.sendJsonResponse(res, 200, {
+                ok: false,
+                error: 'User choice timed out',
+                choice: null,
+                label: null,
+              });
+            }
+          }, timeoutMs);
+
+          this.choiceWaiters.push({ questionId: qId, res, timer });
+        } catch (e) {
+          this.sendJsonResponse(res, 400, { error: 'Invalid JSON body' });
+        }
+      });
       return;
     }
 
@@ -167,7 +264,7 @@ export class NotifyServer {
         bodyLength += chunk.length;
         if (bodyLength > this.MAX_BODY_BYTES) {
           req.destroy();
-          this.sendJsonResponse(res, 413, { error: 'Payload too large (max 4KB)' });
+          this.sendJsonResponse(res, 413, { error: 'Payload too large (max 8KB)' });
           return;
         }
         body += chunk;
@@ -227,6 +324,10 @@ export class NotifyServer {
 
     if (payload.event !== undefined && typeof payload.event !== 'string') {
       return 'Field "event" must be a string';
+    }
+
+    if (payload.options !== undefined && !Array.isArray(payload.options)) {
+      return 'Field "options" must be an array';
     }
 
     return null;

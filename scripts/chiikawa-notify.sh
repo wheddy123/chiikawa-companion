@@ -13,6 +13,7 @@ SOURCE="terminal"
 DURATION=""
 STICKY="false"
 SOUND=""
+OPTIONS=""
 
 # Helper for parsing
 while [[ $# -gt 0 ]]; do
@@ -35,6 +36,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --sound)
       SOUND="$2"
+      shift 2
+      ;;
+    --options|-o)
+      OPTIONS="$2"
       shift 2
       ;;
     --sticky)
@@ -106,6 +111,10 @@ if [ -n "$DURATION" ]; then
 fi
 if [ -n "$SOUND" ]; then
   JSON_BODY="$JSON_BODY,\"sound\":\"$SOUND\""
+fi
+if [ -n "$OPTIONS" ]; then
+  OPT_JSON=$(echo "$OPTIONS" | awk -F',' '{for(i=1;i<=NF;i++){gsub(/^[ \t]+|[ \t]+$/, "", $i); printf "\"%s\"%s", $i, (i==NF?"":",")}}' )
+  JSON_BODY="$JSON_BODY,\"options\":[$OPT_JSON]"
 fi
 JSON_BODY="$JSON_BODY}"
 

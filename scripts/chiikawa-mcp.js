@@ -36,7 +36,7 @@ function loadConfig() {
 
 // HTTP request helper to Chiikawa Companion server
 function sendNotification(payload) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const config = loadConfig();
     const port = config.port || 7788;
     const token = config.token || '';
@@ -70,16 +70,64 @@ function sendNotification(payload) {
       }
     );
 
-    req.on('error', (err) => {
-      resolve({
-        ok: false,
-        error: `Could not connect to Chiikawa Companion on port ${port}: ${err.message}. Is the app running?`,
-      });
-    });
-
+    req.on('error', (err) => resolve({ ok: false, error: err.message }));
     req.on('timeout', () => {
       req.destroy();
-      resolve({ ok: false, error: 'Request timed out after 2.5s' });
+      resolve({ ok: false, error: 'Timeout connecting to Chiikawa Companion' });
+    });
+
+    req.write(postData);
+    req.end();
+  });
+}
+
+function askQuestion(question, options, source, timeoutMs) {
+  return new Promise((resolve) => {
+    const config = loadConfig();
+    const port = config.port || 7788;
+    const token = config.token || '';
+
+    const timeout = timeoutMs || 60000;
+    const postData = JSON.stringify({
+      question,
+      options: options || ['Đồng ý', 'Từ chối'],
+      source: source || 'ai-agent',
+      timeout_ms: timeout,
+      wait: true,
+    });
+
+    const req = http.request(
+      {
+        hostname: '127.0.0.1',
+        port: port,
+        path: '/ask',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(postData),
+          Authorization: `Bearer ${token}`,
+          Host: `127.0.0.1:${port}`,
+        },
+        timeout: timeout + 5000,
+      },
+      (res) => {
+        let body = '';
+        res.on('data', (chunk) => (body += chunk));
+        res.on('end', () => {
+          try {
+            const data = JSON.parse(body);
+            resolve(data);
+          } catch (e) {
+            resolve({ ok: false, error: 'Failed to parse response: ' + body });
+          }
+        });
+      }
+    );
+
+    req.on('error', (err) => resolve({ ok: false, error: err.message }));
+    req.on('timeout', () => {
+      req.destroy();
+      resolve({ ok: false, error: 'Timeout waiting for human decision' });
     });
 
     req.write(postData);
@@ -102,11 +150,11 @@ function checkHealth() {
       },
       (res) => {
         let body = '';
-        res.on('data', (chunk) => (body += chunk));
+        res.on('data', (c) => (body += c));
         res.on('end', () => {
           try {
             const data = JSON.parse(body);
-            resolve({ running: true, data });
+            resolve({ running: true, ...data });
           } catch (e) {
             resolve({ running: true, raw: body });
           }
@@ -125,7 +173,7 @@ function checkHealth() {
   });
 }
 
-function getPendingPrompt() {
+function getPendingChoice() {
   return new Promise((resolve) => {
     const config = loadConfig();
     const port = config.port || 7788;
@@ -134,7 +182,7 @@ function getPendingPrompt() {
       {
         hostname: '127.0.0.1',
         port: port,
-        path: '/chat/prompt',
+        path: '/action/choice',
         headers: { Host: `127.0.0.1:${port}` },
         timeout: 1500,
       },
@@ -144,18 +192,18 @@ function getPendingPrompt() {
         res.on('end', () => {
           try {
             const data = JSON.parse(body);
-            resolve({ ok: true, prompt: data.prompt });
+            resolve({ ok: true, choice: data.choice, label: data.label });
           } catch (e) {
-            resolve({ ok: false, prompt: null });
+            resolve({ ok: false, choice: null });
           }
         });
       }
     );
 
-    req.on('error', () => resolve({ ok: false, prompt: null }));
+    req.on('error', () => resolve({ ok: false, choice: null }));
     req.on('timeout', () => {
       req.destroy();
-      resolve({ ok: false, prompt: null });
+      resolve({ ok: false, choice: null });
     });
   });
 }
@@ -209,9 +257,39 @@ function playSound(clipOrEvent) {
 // Tool definitions for MCP
 const TOOLS = [
   {
+    name: 'chiikawa_ask',
+    description:
+      'Prompt the user with a question and interactive 1-click choice buttons on the Chiikawa desktop mascot (e.g. Approve/Reject, Retry/Cancel). Waits for the user to click an option and returns their decision instantly. Perfect for rapid human confirmation.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        question: {
+          type: 'string',
+          description: 'The question or confirmation prompt to display to the user',
+        },
+        options: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'List of quick-action button labels (default: ["Đồng ý", "Từ chối"]). Example: ["Duyệt", "Hủy"], ["Retry", "Rollback"]',
+        },
+        source: {
+          type: 'string',
+          description: 'Calling agent or tool name (e.g. "opencode", "antigravity", "claude")',
+          default: 'ai-agent',
+        },
+        timeout_ms: {
+          type: 'number',
+          description: 'Maximum time to wait for human action in milliseconds (default: 60000)',
+        },
+      },
+      required: ['question'],
+    },
+  },
+  {
     name: 'chiikawa_notify',
     description:
-      'Display a notification bubble above the Chiikawa 3D desktop mascot and trigger an emotional animation. Use this to notify the user of progress, tasks, completion, questions, or errors.',
+      'Display a notification bubble above the Chiikawa 3D desktop mascot and trigger an emotional animation. Can optionally include quick-action buttons.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -229,6 +307,11 @@ const TOOLS = [
           type: 'string',
           description: 'Calling agent or tool name (e.g. "opencode", "antigravity", "claude")',
           default: 'ai-agent',
+        },
+        options: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Optional quick-choice buttons for the user to click',
         },
         duration_ms: {
           type: 'number',
@@ -284,17 +367,17 @@ const TOOLS = [
     },
   },
   {
-    name: 'chiikawa_status',
-    description: 'Check if the Chiikawa Companion desktop application is currently running.',
+    name: 'chiikawa_get_user_choice',
+    description:
+      'Fetch the latest 1-click decision or button choice clicked by the user on the Chiikawa desktop mascot.',
     inputSchema: {
       type: 'object',
       properties: {},
     },
   },
   {
-    name: 'chiikawa_get_user_prompt',
-    description:
-      'Fetch the next pending user prompt or message typed in the Chiikawa desktop chat box. Useful for AI agents to listen for instructions from the desktop mascot.',
+    name: 'chiikawa_status',
+    description: 'Check if the Chiikawa Companion desktop application is currently running.',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -324,7 +407,7 @@ async function handleRpc(msg) {
   }
 
   if (method === 'notifications/initialized') {
-    return null; // Notifications don't receive responses
+    return null;
   }
 
   if (method === 'ping') {
@@ -344,11 +427,44 @@ async function handleRpc(msg) {
   if (method === 'tools/call') {
     const { name, arguments: args } = params || {};
 
+    if (name === 'chiikawa_ask') {
+      const res = await askQuestion(args.question, args.options, args.source, args.timeout_ms);
+      if (res && res.ok && res.choice) {
+        return {
+          jsonrpc: '2.0',
+          id,
+          result: {
+            content: [
+              {
+                type: 'text',
+                text: `User selected: "${res.choice}" (1-click human confirmation on Chiikawa companion)`,
+              },
+            ],
+          },
+        };
+      } else {
+        return {
+          jsonrpc: '2.0',
+          id,
+          result: {
+            content: [
+              {
+                type: 'text',
+                text: res.error || 'No decision made or timed out',
+              },
+            ],
+            isError: true,
+          },
+        };
+      }
+    }
+
     if (name === 'chiikawa_notify') {
       const res = await sendNotification({
         state: args.state,
         message: args.message,
         source: args.source || 'ai-agent',
+        options: args.options,
         duration_ms: args.duration_ms,
         sticky: args.sticky,
         sound: args.sound,
@@ -444,8 +560,8 @@ async function handleRpc(msg) {
       };
     }
 
-    if (name === 'chiikawa_get_user_prompt') {
-      const res = await getPendingPrompt();
+    if (name === 'chiikawa_get_user_choice' || name === 'chiikawa_get_user_prompt') {
+      const res = await getPendingChoice();
       return {
         jsonrpc: '2.0',
         id,
@@ -453,9 +569,9 @@ async function handleRpc(msg) {
           content: [
             {
               type: 'text',
-              text: res.prompt
-                ? `Pending prompt: "${res.prompt}"`
-                : 'No pending prompt from user.',
+              text: res.choice
+                ? `Latest choice by user: "${res.choice}"`
+                : 'No pending choice from user.',
             },
           ],
         },
@@ -503,6 +619,8 @@ function start() {
       );
     }
   });
+
+  process.stderr.write('[Chiikawa MCP] Server running and listening on stdio\n');
 }
 
 start();

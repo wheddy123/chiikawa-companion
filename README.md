@@ -21,10 +21,11 @@ MỘT source code duy nhất bằng TypeScript, Electron và Three.js, tự đ�
   - Tích hợp 16 âm thanh soundboard đặc trưng: Usagi (*"Una"*, *"Yahaaaa"*, *"U-una-na-ya-ha"*, *"Haaaa?!"*, *"Wula!"*, *"IYAHA"*, *"Pyjamas Party"*), Hachiware (*"Oi"*), Momonga (*"Silly noise"*, *"Crying"*), Chiikawa (*"Nani nani?"*).
   - Tự động phát âm thanh ăn khớp theo từng trạng thái (thành công, đang suy nghĩ, báo động, lỗi, click chọc ghẹo).
   - Bật/tắt tiếng nhanh gọn qua menu Tray / Menu Bar.
-- **💬 Chat Box tương tác 2 chiều với Agent**:
-  - Bấm nút 💬 ở góc dưới hoặc click vào mascot để mở khung chat.
-  - Nhập prompt/chỉ đạo trực tiếp cho coding agent, nhấn Enter hoặc "Gửi". Chiikawa sẽ hiển thị câu hỏi và chuyển tiếp cho agent qua API `/chat/prompt` hoặc MCP Server.
-  - Tự động nhận diện bàn phím và nhả focus trả lại cho editor khi gõ xong.
+- **⚡ Nút Tác Vụ Nhanh (1-Click Human Decision)**:
+  - Khi Coding Agent cần con người can thiệp khẩn cấp (như duyệt lệnh bash, xác nhận git push, chọn phương án rollback/retry), Chiikawa sẽ hiện câu hỏi kèm các nút bấm lựa chọn ngay trong bong bóng thoại (ví dụ: `[✓ Duyệt ngay]`, `[✗ Hủy bỏ]`).
+  - Không cần gõ phím lằng nhằng, chỉ cần 1 click chuột là quyết định được gửi thẳng về cho Agent xử lý tiếp ngay lập tức!
+  - Mascot tự động phát voice line ăn khớp (chọn Duyệt -> Usagi reo *"Yahaaaa"*, chọn Hủy -> Usagi *"Haaaa?!"*).
+  - Hỗ trợ endpoint `POST /ask` chờ phản hồi trực tiếp, hoặc tool MCP `chiikawa_ask`.
 - **Cửa sổ trong suốt & Click xuyên vùng trống**:
   - `transparent: true`, `frame: false`, `alwaysOnTop: true`.
   - Tự động click-through qua vùng trong suốt; chỉ nhận click khi con trỏ rê vào mascot hoặc bong bóng thoại.
@@ -283,10 +284,11 @@ Invoke-RestMethod -Uri "http://127.0.0.1:7788/notify" -Method Post -Headers $hea
 
 Chiikawa Companion cung cấp sẵn MCP Server tại `scripts/chiikawa-mcp.js` tương thích chuẩn JSON-RPC stdio. Các AI Agent (như **OpenCode**, **Antigravity**, **Claude Code**, **Cursor**) có thể tự động gọi Chiikawa thông qua tools:
 
-- `chiikawa_notify`: Gửi thông báo kèm trạng thái cảm xúc, âm thanh tùy chọn.
+- `chiikawa_ask`: Hỏi người dùng câu hỏi/xác nhận khẩn cấp kèm các nút bấm 1-click (ví dụ: `["Duyệt", "Hủy"]`), chờ người dùng click và trả về quyết định ngay lập tức!
+- `chiikawa_notify`: Gửi thông báo kèm trạng thái cảm xúc, âm thanh tùy chọn hoặc danh sách nút lựa chọn `options`.
 - `chiikawa_play_sound`: Phát bất kỳ clip nào trong 16 voice line (ví dụ `usagi_yaha`, `usagi_una`, `usagi_iyaha`, `momonga_crying`).
 - `chiikawa_set_state`: Đổi trạng thái 3D mascot tức thì (`thinking`, `success`, `alert`, `error`, `idle`).
-- `chiikawa_get_user_prompt`: Đọc câu hỏi/chỉ đạo mới nhất mà người dùng vừa gõ vào khung chat của mascot.
+- `chiikawa_get_user_choice`: Đọc quyết định nút bấm gần nhất của người dùng.
 - `chiikawa_status`: Kiểm tra app Chiikawa có đang bật hay không.
 
 #### Cấu hình cho Claude Desktop / OpenCode / Antigravity / Cursor:

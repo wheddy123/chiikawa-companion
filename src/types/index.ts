@@ -1,6 +1,14 @@
 export type MascotState = 'idle' | 'thinking' | 'success' | 'alert' | 'error';
 
+export interface NotifyOption {
+  id?: string;
+  label: string;
+  style?: 'primary' | 'danger' | 'secondary' | 'neutral';
+  sound?: string;
+}
+
 export interface NotifyPayload {
+  id?: string;
   state: MascotState;
   message: string;
   source?: string;
@@ -8,6 +16,15 @@ export interface NotifyPayload {
   sticky?: boolean;
   sound?: string;
   event?: string;
+  options?: Array<string | NotifyOption>;
+}
+
+export interface UserChoice {
+  id: string;
+  label: string;
+  questionId?: string;
+  source?: string;
+  timestamp: number;
 }
 
 export interface CursorPosition {

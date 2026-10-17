@@ -25,7 +25,10 @@ param (
     [switch]$Sticky,
 
     [Parameter()]
-    [string]$Sound = ""
+    [string]$Sound = "",
+
+    [Parameter()]
+    [string[]]$Options = @()
 )
 
 try {
@@ -59,6 +62,10 @@ try {
 
     if (-not [string]::IsNullOrWhiteSpace($Sound)) {
         $body["sound"] = $Sound
+    }
+
+    if ($Options -and $Options.Count -gt 0) {
+        $body["options"] = $Options
     }
 
     $jsonBody = $body | ConvertTo-Json -Compress
