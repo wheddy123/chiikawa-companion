@@ -138,22 +138,32 @@ async function init() {
     }
   };
 
+  let lastClickTimestamp = 0;
+
   const endDrag = () => {
     if (!isDragging) return;
     isDragging = false;
     animator.setDragging(false);
 
     if (!hasMoved) {
-      // Single click on mascot body: playful happy hop + cute reaction sound (if unmuted)
-      animator.setState('success');
-      if (soundManager.isEnabled()) {
-        soundManager.playRandomReaction();
-      }
-      setTimeout(() => {
-        if (!bubbleManager.hasActiveBubble()) {
-          animator.setState('idle');
+      const now = performance.now();
+      if (now - lastClickTimestamp < 420) {
+        // Consecutive quick clicks: Double click detected!
+        lastClickTimestamp = 0;
+        toggleMute();
+      } else {
+        lastClickTimestamp = now;
+        // Single click on mascot body: playful happy hop + cute reaction sound (if unmuted)
+        animator.setState('success');
+        if (soundManager.isEnabled()) {
+          soundManager.playRandomReaction();
         }
-      }, 1500);
+        setTimeout(() => {
+          if (!bubbleManager.hasActiveBubble()) {
+            animator.setState('idle');
+          }
+        }, 1500);
+      }
     }
 
     // Re-evaluate hover hit test after drop
@@ -193,7 +203,7 @@ async function init() {
       return;
     }
 
-    const hit = scene.hitTest(e.clientX, e.clientY, latestBounds);
+    const hit = scene.hitTestClient(e.clientX, e.clientY);
     if (hit) {
       toggleMute();
     }

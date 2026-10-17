@@ -145,7 +145,7 @@ export class MascotScene {
           // Create Band-Aid mesh for mute state (sticker covering Chiikawa's mouth)
           const bandaidTex = new THREE.TextureLoader().load('./bandaid.png');
           bandaidTex.colorSpace = THREE.SRGBColorSpace;
-          const bandaidGeo = new THREE.PlaneGeometry(0.55, 0.38);
+          const bandaidGeo = new THREE.PlaneGeometry(0.60, 0.40);
           const bandaidMat = new THREE.MeshBasicMaterial({
             map: bandaidTex,
             transparent: true,
@@ -156,8 +156,8 @@ export class MascotScene {
           this.bandaidMesh = new THREE.Mesh(bandaidGeo, bandaidMat);
           this.bandaidMesh.name = 'BandaidMouth';
           // Position right on Chiikawa's mouth between pink blush cheeks
-          this.bandaidMesh.position.set(0, 1.00, 1.28);
-          this.bandaidMesh.rotation.set(-0.06, 0, -0.15);
+          this.bandaidMesh.position.set(0, 0.84, 1.255);
+          this.bandaidMesh.rotation.set(0.04, 0, -0.15);
           this.bandaidMesh.visible = false;
           gltf.scene.add(this.bandaidMesh);
 
@@ -250,6 +250,36 @@ export class MascotScene {
     this.raycaster.setFromCamera(this.mouseVec, this.camera);
     const intersects = this.raycaster.intersectObjects(this.meshes, false);
 
+    return intersects.length > 0;
+  }
+
+  public hitTestClient(clientX: number, clientY: number): boolean {
+    if (this.meshes.length === 0) return false;
+
+    const canvasRect = this.renderer.domElement.getBoundingClientRect();
+    const localX = clientX - canvasRect.left;
+    const localY = clientY - canvasRect.top;
+
+    if (
+      localX < 0 ||
+      localX > canvasRect.width ||
+      localY < 0 ||
+      localY > canvasRect.height
+    ) {
+      return false;
+    }
+
+    this.mouseVec.x = (localX / canvasRect.width) * 2 - 1;
+    this.mouseVec.y = -(localY / canvasRect.height) * 2 + 1;
+
+    this.raycaster.setFromCamera(this.mouseVec, this.camera);
+
+    if (this.bandaidMesh && this.bandaidMesh.visible) {
+      const hits = this.raycaster.intersectObject(this.bandaidMesh, false);
+      if (hits.length > 0) return true;
+    }
+
+    const intersects = this.raycaster.intersectObjects(this.meshes, false);
     return intersects.length > 0;
   }
 
