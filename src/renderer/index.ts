@@ -60,13 +60,13 @@ async function init() {
     }
   );
 
-  // Load Chiikawa 3D GLB model
+  // Load Chiikawa 3D GLB model (seated desk-companion pose)
   try {
-    await scene.loadModel('./chiikawa.glb');
+    await scene.loadModel('./chiikawa_sitting.glb');
   } catch (err) {
-    console.warn('Fallback loading ../assets/chiikawa.glb...', err);
+    console.warn('Fallback loading ./chiikawa.glb...', err);
     try {
-      await scene.loadModel('../assets/chiikawa.glb');
+      await scene.loadModel('./chiikawa.glb');
     } catch (err2) {
       console.error('All model load attempts failed:', err2);
     }

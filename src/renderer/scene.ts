@@ -32,27 +32,27 @@ export class MascotScene {
     // 1. Scene
     this.scene = new THREE.Scene();
 
-    // 2. Camera
+    // 2. Camera: eye-level portrait perspective matching reference figurine
     const width = container.clientWidth || 280;
     const height = container.clientHeight || 200;
-    this.camera = new THREE.PerspectiveCamera(32, width / height, 0.1, 100);
-    this.camera.position.set(0, 0, 5.2);
-    this.camera.lookAt(0, 0, 0);
+    this.camera = new THREE.PerspectiveCamera(30, width / height, 0.1, 100);
+    this.camera.position.set(0, -0.18, 4.4);
+    this.camera.lookAt(0, -0.22, 0);
 
-    // 3. Renderer with absolute transparency & low power preference
+    // 3. Renderer with absolute transparency and antialiasing for crisp round curves
     this.renderer = new THREE.WebGLRenderer({
       alpha: true,
-      antialias: false,
+      antialias: true,
       powerPreference: 'low-power',
     });
     this.renderer.setClearColor(0x000000, 0);
-    // Cap pixelRatio at 2.0 to conserve RAM and GPU on Retina displays
+    // Support crisp Retina displays
     const pixelRatio = Math.min(window.devicePixelRatio || 1, 2.0);
     this.renderer.setPixelRatio(pixelRatio);
     this.renderer.setSize(width, height);
     container.appendChild(this.renderer.domElement);
 
-    // 4. Soft studio lighting
+    // 4. Soft studio lighting matching collectible toy photo
     this.setupLighting();
 
     // 5. Handle resize
@@ -61,18 +61,23 @@ export class MascotScene {
 
   private setupLighting(): void {
     // Soft warm ambient light
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.1);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.25);
     this.scene.add(ambientLight);
 
     // Key light (soft front-top-right)
-    const keyLight = new THREE.DirectionalLight(0xfff6ec, 1.3);
-    keyLight.position.set(2, 4, 3.5);
+    const keyLight = new THREE.DirectionalLight(0xfff8ee, 1.45);
+    keyLight.position.set(2, 3.5, 3.5);
     this.scene.add(keyLight);
 
     // Subtle cool fill light from opposite side
-    const fillLight = new THREE.DirectionalLight(0xebf4ff, 0.5);
-    fillLight.position.set(-2.5, 1, 2.5);
+    const fillLight = new THREE.DirectionalLight(0xedf4ff, 0.65);
+    fillLight.position.set(-2.2, 1.2, 2.8);
     this.scene.add(fillLight);
+
+    // Upward warm bounce light from desk / ledge below (illuminates chubby cheeks and folded paws)
+    const bounceLight = new THREE.DirectionalLight(0xffeedd, 0.35);
+    bounceLight.position.set(0, -2, 2);
+    this.scene.add(bounceLight);
   }
 
   public async loadModel(url: string): Promise<void> {
@@ -85,22 +90,21 @@ export class MascotScene {
           this.modelRoot = new THREE.Group();
           this.modelRoot.name = 'MascotRoot';
 
-          // Extract meshes for hit testing
+          // Extract meshes for hit testing and configure materials
           gltf.scene.traverse((child) => {
             if ((child as THREE.Mesh).isMesh) {
               const mesh = child as THREE.Mesh;
               this.meshes.push(mesh);
-              // Ensure proper material rendering
+
+              // Apply smooth vinyl / matte collectible figurine material
               if (mesh.material) {
-                if (Array.isArray(mesh.material)) {
-                  mesh.material.forEach((m) => {
-                    m.transparent = true;
-                    m.needsUpdate = true;
-                  });
-                } else {
-                  mesh.material.transparent = true;
-                  mesh.material.needsUpdate = true;
-                }
+                const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+                mats.forEach((m: any) => {
+                  m.transparent = true;
+                  if (m.roughness !== undefined) m.roughness = 0.62;
+                  if (m.metalness !== undefined) m.metalness = 0.04;
+                  m.needsUpdate = true;
+                });
               }
             }
           });
@@ -119,18 +123,18 @@ export class MascotScene {
           const center = new THREE.Vector3();
           box.getCenter(center);
 
-          // Center X and Z, align bottom to ground (y=0)
+          // Center X and Z, align bottom of seated pose to y=0
           gltf.scene.position.x = -center.x;
           gltf.scene.position.y = -box.min.y;
           gltf.scene.position.z = -center.z;
 
-          // Scale to fit nicely in viewport
-          const targetHeight = 1.9;
+          // Scale to fit comfortably in viewport
+          const targetHeight = 1.82;
           const scale = targetHeight / Math.max(size.y, 0.001);
           this.modelRoot.scale.set(scale, scale, scale);
 
-          // Position mascot slightly lower so speech bubble has room on top
-          const initialPos = new THREE.Vector3(0, -1.0, 0);
+          // Position seated mascot resting solidly on bottom ledge
+          const initialPos = new THREE.Vector3(0, -0.92, 0);
           this.modelRoot.position.copy(initialPos);
 
           this.modelRoot.add(gltf.scene);
@@ -172,9 +176,8 @@ export class MascotScene {
     this.animationFrameId = requestAnimationFrame(this.tick);
 
     const now = performance.now();
-    const isIdle = this.animator.isIdle();
-    // FPS Throttling: 30fps (~33.3ms) in idle to stay <= 3% CPU on 8GB Mac; 60fps (~16.6ms) when active
-    const frameInterval = isIdle ? 1000 / 30 : 1000 / 60;
+    // Silky smooth 60fps rendering (no 30fps stutter)
+    const frameInterval = 1000 / 60;
     const elapsed = now - this.lastFrameTime;
 
     if (elapsed < frameInterval) {
@@ -182,7 +185,7 @@ export class MascotScene {
     }
     this.lastFrameTime = now - (elapsed % frameInterval);
 
-    const delta = Math.min(this.clock.getDelta(), 0.1);
+    const delta = Math.min(this.clock.getDelta(), 0.05);
 
     // Update animations
     if (this.mixer) {

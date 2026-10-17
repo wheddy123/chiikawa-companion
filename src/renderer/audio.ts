@@ -30,12 +30,12 @@ export const VOICE_CLIPS: VoiceClip[] = [
 
 export class SoundManager {
   private enabled: boolean = true;
-  private volume: number = 0.8;
+  private volume: number = 0.28;
   private audioCache: Map<string, HTMLAudioElement> = new Map();
   private lastPlayedTime: number = 0;
   private readonly MIN_INTERVAL_MS = 300; // prevent overlapping spam
 
-  constructor(enabled: boolean = true, volume: number = 0.8) {
+  constructor(enabled: boolean = true, volume: number = 0.28) {
     this.enabled = enabled;
     this.volume = volume;
     this.preloadClips();
