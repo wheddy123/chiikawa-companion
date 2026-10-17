@@ -1,0 +1,189 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent !important;
+  user-select: none;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+}
+
+.bubble-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 130px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 8px 12px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.bubble {
+  position: relative;
+  max-width: 250px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 14px;
+  padding: 8px 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  pointer-events: auto;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+  animation: bubblePop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes bubblePop {
+  0% {
+    opacity: 0;
+    transform: scale(0.8) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.bubble.dismissing {
+  opacity: 0;
+  transform: scale(0.85) translateY(-5px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+/* Speech bubble downward tail */
+.bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid rgba(255, 255, 255, 0.95);
+}
+
+.bubble-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.bubble-source {
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.bubble-queue-badge {
+  background: #e2e8f0;
+  color: #475569;
+  border-radius: 8px;
+  padding: 1px 5px;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.bubble-text {
+  font-size: 12px;
+  line-height: 1.35;
+  color: #1e293b;
+  word-break: break-word;
+  font-weight: 500;
+}
+
+/* State-specific themes */
+.bubble.state-idle {
+  border-color: #cbd5e1;
+}
+
+.bubble.state-thinking {
+  border-color: #93c5fd;
+}
+.bubble.state-thinking .bubble-source {
+  color: #2563eb;
+}
+
+.bubble.state-success {
+  border-color: #86efac;
+}
+.bubble.state-success .bubble-source {
+  color: #16a34a;
+}
+
+.bubble.state-alert {
+  border-color: #fca5a5;
+  animation: bubblePop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), alertPulse 1.8s infinite ease-in-out;
+}
+.bubble.state-alert .bubble-source {
+  color: #dc2626;
+}
+
+.bubble.state-error {
+  border-color: #fda4af;
+}
+.bubble.state-error .bubble-source {
+  color: #e11d48;
+}
+
+@keyframes alertPulse {
+  0%, 100% {
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.25), 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+  50% {
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5), 0 1px 5px rgba(239, 68, 68, 0.3);
+  }
+}
+
+.canvas-container {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 200px;
+  pointer-events: none;
+}
+
+canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  outline: none;
+  background: transparent !important;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .bubble, .bubble.state-alert {
+    animation: none !important;
+    transition: opacity 0.1s ease !important;
+  }
+}

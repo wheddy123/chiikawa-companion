@@ -1,0 +1,49 @@
+{
+  "appId": "com.chiikawa.companion",
+  "productName": "Chiikawa Companion",
+  "directories": {
+    "output": "release"
+  },
+  "files": [
+    "dist/**/*",
+    "assets/**/*"
+  ],
+  "extraResources": [
+    {
+      "from": "dist/main/platform/raycast-watcher",
+      "to": "raycast-watcher",
+      "filter": ["*"]
+    },
+    {
+      "from": "scripts",
+      "to": "scripts",
+      "filter": ["chiikawa-notify.*", "raycast-toggle.*"]
+    }
+  ],
+  "mac": {
+    "target": [
+      {
+        "target": "dmg",
+        "arch": ["arm64", "x64"]
+      }
+    ],
+    "category": "public.app-category.developer-tools",
+    "identity": null,
+    "gatekeeperAssess": false,
+    "hardenedRuntime": false
+  },
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      }
+    ]
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true
+  }
+}
