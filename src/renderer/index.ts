@@ -2,6 +2,7 @@ import { ProceduralAnimator } from './animation';
 import { MascotScene } from './scene';
 import { SpeechBubbleManager } from './bubble';
 import { SoundManager } from './audio';
+import { Gesture } from './gesture';
 import type { ElectronAPI } from '../preload';
 import type { CursorPosition, WindowBounds, NotifyPayload, NotifyOption, UserChoice, SystemTelemetry } from '../types';
 
@@ -138,109 +139,48 @@ async function init() {
     }
   };
 
-  let lastClickTimestamp = 0;
   let lastToggleTime = 0;
-  let singleClickTimeout: number | null = null;
-
-  // Double-click on Chiikawa to toggle mute with cute band-aid sticker!
   const toggleMute = () => {
     const now = performance.now();
-    // 500ms debounce guard: prevents double-triggering when both manual click detection and native dblclick fire
-    if (now - lastToggleTime < 500) {
+    // 150ms re-entry guard for safety
+    if (now - lastToggleTime < 150) {
       return;
     }
     lastToggleTime = now;
-
-    // Cancel pending single-click reaction
-    if (singleClickTimeout !== null) {
-      clearTimeout(singleClickTimeout);
-      singleClickTimeout = null;
-    }
-
-    const currentlyMuted = !soundManager.isEnabled();
-    const nextMuted = !currentlyMuted;
-    soundManager.setEnabled(!nextMuted);
-    scene.setMuted(nextMuted);
-    animator.setMuted(nextMuted);
-    window.electronAPI?.setSoundEnabled(!nextMuted);
-
-    if (nextMuted) {
-      bubbleManager.enqueue({
-        state: 'alert',
-        message: 'Mmmph!! Mmph-yaaa!! 🩹\n(Chiikawa đã bị dán băng keo bịt mồm & tắt tiếng. Nhấn đúp để gỡ!)',
-        source: 'chiikawa',
-        duration_ms: 3200,
-        sticky: false,
-      });
-    } else {
-      bubbleManager.enqueue({
-        state: 'success',
-        message: 'Haaa~! Thoát rồi! Đã gỡ băng keo & bật lại âm thanh 🎵',
-        source: 'chiikawa',
-        sound: 'usagi_yaha',
-        duration_ms: 2800,
-        sticky: false,
-      });
-    }
+    window.electronAPI?.toggleSound();
   };
+
+  const gesture = new Gesture({
+    onSingle: () => {
+      if (animator.isIdle() && !bubbleManager.hasActiveBubble()) {
+        animator.setState('success');
+        if (soundManager.isEnabled()) {
+          soundManager.playRandomReaction();
+        }
+        setTimeout(() => {
+          if (!bubbleManager.hasActiveBubble()) {
+            animator.setState('idle');
+          }
+        }, 1200);
+      }
+    },
+    onDouble: () => {
+      toggleMute();
+    },
+    onDragStart: () => {
+      isDragging = true;
+      hasMoved = true;
+      window.electronAPI?.setIgnoreMouseEvents(false);
+      animator.setDragging(true, 0, 0);
+    },
+  });
 
   const endDrag = () => {
     if (!isDragging) return;
     isDragging = false;
     animator.setDragging(false);
-
-    if (!hasMoved) {
-      const now = performance.now();
-      if (now - lastClickTimestamp < 380) {
-        // Consecutive quick clicks: Double click detected!
-        lastClickTimestamp = 0;
-        if (singleClickTimeout !== null) {
-          clearTimeout(singleClickTimeout);
-          singleClickTimeout = null;
-        }
-        toggleMute();
-      } else {
-        lastClickTimestamp = now;
-        // Delay single click reaction so double click cancels it cleanly
-        if (singleClickTimeout !== null) {
-          clearTimeout(singleClickTimeout);
-        }
-        singleClickTimeout = window.setTimeout(() => {
-          singleClickTimeout = null;
-          if (animator.isIdle() && !bubbleManager.hasActiveBubble()) {
-            animator.setState('success');
-            if (soundManager.isEnabled()) {
-              soundManager.playRandomReaction();
-            }
-            setTimeout(() => {
-              if (!bubbleManager.hasActiveBubble()) {
-                animator.setState('idle');
-              }
-            }, 1200);
-          }
-        }, 280);
-      }
-    }
-
-    // Re-evaluate hover hit test after drop
     updateHitTest(latestCursor, latestBounds);
   };
-
-  window.addEventListener('dblclick', (e: MouseEvent) => {
-    const bubbleEl = bubbleManager.getActiveBubbleElement();
-    if (bubbleEl && bubbleEl.contains(e.target as Node)) {
-      return;
-    }
-
-    const hit = scene.hitTestClient(e.clientX, e.clientY);
-    if (hit) {
-      if (singleClickTimeout !== null) {
-        clearTimeout(singleClickTimeout);
-        singleClickTimeout = null;
-      }
-      toggleMute();
-    }
-  });
 
   window.addEventListener('mousedown', (e: MouseEvent) => {
     // Check if clicked on speech bubble
@@ -249,32 +189,35 @@ async function init() {
       return;
     }
 
-    if (isMouseHovering) {
-      isDragging = true;
+    if (isMouseHovering || scene.hitTestClient(e.clientX, e.clientY)) {
       hasMoved = false;
       dragGrabOffsetX = e.clientX;
       dragGrabOffsetY = e.clientY;
       lastDragScreenX = e.screenX;
       lastDragScreenY = e.screenY;
-
-      // Lock mouse capture to window during drag
-      window.electronAPI?.setIgnoreMouseEvents(false);
-      animator.setDragging(true, 0, 0);
+      gesture.pointerDown(e.screenX, e.screenY, performance.now());
     }
   });
 
   window.addEventListener('mousemove', (e: MouseEvent) => {
-    if (isDragging) {
-      // If mouse button was released
-      if (e.buttons === 0) {
+    if (e.buttons === 0) {
+      if (isDragging) {
         endDrag();
-        return;
       }
+      return;
+    }
+    gesture.pointerMove(e.screenX, e.screenY);
+    if (isDragging) {
       handleDragMove(e.screenX, e.screenY);
     }
   });
 
-  window.addEventListener('mouseup', endDrag);
+  window.addEventListener('mouseup', (e: MouseEvent) => {
+    gesture.pointerUp(e.screenX, e.screenY, performance.now());
+    if (isDragging) {
+      endDrag();
+    }
+  });
 
   // IPC listeners from preload
   if (window.electronAPI) {
@@ -306,10 +249,38 @@ async function init() {
       }
     });
 
+    let initialSoundStateSet = false;
     window.electronAPI.onSoundEnabled((enabled: boolean) => {
+      const prevEnabled = soundManager.isEnabled();
       soundManager.setEnabled(enabled);
       scene.setMuted(!enabled);
       animator.setMuted(!enabled);
+
+      if (!initialSoundStateSet) {
+        initialSoundStateSet = true;
+        return;
+      }
+
+      if (prevEnabled !== enabled) {
+        if (!enabled) {
+          bubbleManager.enqueue({
+            state: 'alert',
+            message: 'Mmmph!! Mmph-yaaa!! 🩹\n(Chiikawa đã bị dán băng keo bịt mồm & tắt tiếng. Nhấn đúp để gỡ!)',
+            source: 'chiikawa',
+            duration_ms: 3200,
+            sticky: false,
+          });
+        } else {
+          bubbleManager.enqueue({
+            state: 'success',
+            message: 'Haaa~! Thoát rồi! Đã gỡ băng keo & bật lại âm thanh 🎵',
+            source: 'chiikawa',
+            sound: 'usagi_yaha',
+            duration_ms: 2800,
+            sticky: false,
+          });
+        }
+      }
     });
 
     window.electronAPI.onPlaySound((clipOrEvent: string) => {
