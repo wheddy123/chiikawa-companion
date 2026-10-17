@@ -33,10 +33,23 @@ export class SpeechBubbleManager {
       this.show(notification);
     } else {
       // If alert or has interactive options, prioritize over normal items
-      const isPriority = notification.state === 'alert' || (notification.options && notification.options.length > 0);
-      const isCurrentPriority = this.activeItem.state === 'alert' || (this.activeItem.options && this.activeItem.options.length > 0);
+      const isPriority =
+        notification.state === 'alert' ||
+        Boolean(notification.interactive) ||
+        Boolean(notification.choices && notification.choices.length > 0) ||
+        Boolean(notification.options && notification.options.length > 0);
+      const isCurrentPriority =
+        this.activeItem.state === 'alert' ||
+        Boolean(this.activeItem.interactive) ||
+        Boolean(this.activeItem.choices && this.activeItem.choices.length > 0) ||
+        Boolean(this.activeItem.options && this.activeItem.options.length > 0);
 
-      if (isPriority && !isCurrentPriority) {
+      const isCurrentThinking = this.activeItem.state === 'thinking';
+
+      if (isCurrentThinking) {
+        this.clearTimer();
+        this.show(notification);
+      } else if (isPriority && !isCurrentPriority) {
         this.clearTimer();
         this.queue.unshift(this.activeItem);
         this.show(notification);
@@ -62,30 +75,64 @@ export class SpeechBubbleManager {
 
     this.container.innerHTML = '';
 
+    // If item.choices is provided and no options, map choices to options
+    if (item.choices && (!item.options || item.options.length === 0)) {
+      item.options = item.choices.map((c) => ({ id: c, label: c }));
+    }
+
+    const isInteractive = Boolean(
+      item.interactive || (item.choices && item.choices.length > 0) || (item.options && item.options.length > 0)
+    );
+    const isThinking = item.state === 'thinking';
+    const hasOptions = Boolean(item.options && item.options.length > 0);
+
     const bubble = document.createElement('div');
-    const hasOptions = item.options && item.options.length > 0;
-    bubble.className = `bubble state-${item.state}${hasOptions ? ' has-options' : ''}`;
+    bubble.className = `bubble state-${item.state}${hasOptions ? ' has-options' : ''}${isInteractive ? ' is-interactive' : ''}`;
 
     const header = document.createElement('div');
     header.className = 'bubble-header';
 
     const sourceEl = document.createElement('span');
     sourceEl.className = 'bubble-source';
-    sourceEl.textContent = item.source || 'agent';
+    sourceEl.textContent = item.source || (isThinking ? 'thinking' : 'agent');
     header.appendChild(sourceEl);
 
-    if (this.queue.length > 0) {
-      const badge = document.createElement('span');
-      badge.className = 'bubble-queue-badge';
-      badge.textContent = `+${this.queue.length}`;
-      header.appendChild(badge);
+    const badgesContainer = document.createElement('div');
+    badgesContainer.className = 'bubble-header-badges';
+
+    // Interactive "!?" indicator badge
+    if (isInteractive) {
+      const interactiveBadge = document.createElement('span');
+      interactiveBadge.className = 'bubble-badge-interactive';
+      interactiveBadge.textContent = '!?';
+      interactiveBadge.title = 'Chờ phản hồi';
+      badgesContainer.appendChild(interactiveBadge);
     }
 
-    const textEl = document.createElement('div');
-    textEl.className = 'bubble-text';
-    textEl.textContent = item.message;
+    // Queue count badge
+    if (this.queue.length > 0) {
+      const queueBadge = document.createElement('span');
+      queueBadge.className = 'bubble-queue-badge';
+      queueBadge.textContent = `+${this.queue.length}`;
+      badgesContainer.appendChild(queueBadge);
+    }
 
+    header.appendChild(badgesContainer);
     bubble.appendChild(header);
+
+    // Text container: animated thinking text or standard text
+    const textEl = document.createElement('div');
+    if (isThinking) {
+      textEl.className = 'bubble-text bubble-text-thinking';
+      const shimmerEl = document.createElement('span');
+      shimmerEl.className = 'thinking-shimmer';
+      shimmerEl.textContent =
+        item.message && item.message.trim().length > 0 ? item.message : '...đang nghĩ ngợi...';
+      textEl.appendChild(shimmerEl);
+    } else {
+      textEl.className = 'bubble-text';
+      textEl.textContent = item.message || '';
+    }
     bubble.appendChild(textEl);
 
     // Render interactive quick action buttons if provided
@@ -124,10 +171,10 @@ export class SpeechBubbleManager {
       bubble.appendChild(optionsContainer);
     }
 
-    // Dismiss on click background of bubble (only for non-sticky, non-interactive notifications)
+    // Dismiss on click background of bubble (only for non-sticky, non-interactive, non-thinking notifications)
     bubble.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (!item.sticky && !hasOptions) {
+      if (!item.sticky && !isInteractive && !isThinking) {
         this.dismiss();
       }
     });
@@ -138,12 +185,13 @@ export class SpeechBubbleManager {
       this.onBubbleVisibilityChange(true);
     }
 
-    // Auto-dismiss logic:
-    // Auto-advance with dynamic reading time (~2s base + word calculation) and allow instant click-to-advance
-    // Only stay sticky if item.sticky === true
-    const isSticky = item.sticky === true;
     this.shownAt = performance.now();
-    if (!isSticky) {
+
+    // Auto-dismiss and countdown bar logic:
+    // Strictly disabled for interactive items, thinking states, and sticky items
+    const shouldAutoDismiss = !isInteractive && !isThinking && !item.sticky;
+
+    if (shouldAutoDismiss) {
       const words = (item.message || '').trim().split(/\s+/).filter(Boolean).length;
       let duration = Math.min(12000, Math.max(2500, 2000 + words * 180));
 
@@ -156,6 +204,18 @@ export class SpeechBubbleManager {
         duration = Math.min(duration, 3000);
       }
 
+      // Inject slim 2.5px countdown progress line anchored at the bottom edge
+      const countdownBar = document.createElement('div');
+      countdownBar.className = 'bubble-countdown-bar';
+      bubble.appendChild(countdownBar);
+
+      // Trigger smooth GPU-accelerated CSS transition from scaleX(1) to scaleX(0)
+      requestAnimationFrame(() => {
+        countdownBar.getBoundingClientRect(); // force reflow
+        countdownBar.style.transition = `transform ${duration}ms linear`;
+        countdownBar.style.transform = 'scaleX(0)';
+      });
+
       this.hideAt = this.shownAt + duration;
       this.timer = window.setTimeout(() => {
         this.dismiss();
@@ -166,8 +226,12 @@ export class SpeechBubbleManager {
   }
 
   public getDebugState() {
+    const text =
+      this.activeItem?.state === 'thinking' && (!this.activeItem.message || !this.activeItem.message.trim())
+        ? '...đang nghĩ ngợi...'
+        : this.activeItem?.message || '';
     return {
-      text: this.activeItem?.message || '',
+      text,
       shownAt: this.shownAt,
       hideAt: this.hideAt,
       queueLen: this.queue.length,
@@ -220,17 +284,25 @@ export class SpeechBubbleManager {
   }
 
   private updateBadge(): void {
+    let badgesContainer = this.container.querySelector('.bubble-header-badges');
     const badge = this.container.querySelector('.bubble-queue-badge');
     if (this.queue.length > 0) {
       if (badge) {
         badge.textContent = `+${this.queue.length}`;
       } else {
-        const header = this.container.querySelector('.bubble-header');
-        if (header) {
+        if (!badgesContainer) {
+          const header = this.container.querySelector('.bubble-header');
+          if (header) {
+            badgesContainer = document.createElement('div');
+            badgesContainer.className = 'bubble-header-badges';
+            header.appendChild(badgesContainer);
+          }
+        }
+        if (badgesContainer) {
           const newBadge = document.createElement('span');
           newBadge.className = 'bubble-queue-badge';
           newBadge.textContent = `+${this.queue.length}`;
-          header.appendChild(newBadge);
+          badgesContainer.appendChild(newBadge);
         }
       }
     } else if (badge) {

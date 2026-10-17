@@ -88,18 +88,18 @@ async function init() {
       return;
     }
 
-    // Check if cursor is over speech bubble (including quick-choice buttons)
+    // Check if cursor is over speech bubble (including quick-choice buttons & tail buffer)
     const bubbleEl = bubbleManager.getActiveBubbleElement();
     let hitBubble = false;
-    if (bubbleEl) {
+    if (bubbleEl && !bubbleEl.classList.contains('dismissing')) {
       const rect = bubbleEl.getBoundingClientRect();
       const localX = cursor.x - winBounds.x;
       const localY = cursor.y - winBounds.y;
       hitBubble =
-        localX >= rect.left &&
-        localX <= rect.right &&
+        localX >= rect.left - 2 &&
+        localX <= rect.right + 2 &&
         localY >= rect.top &&
-        localY <= rect.bottom;
+        localY <= rect.bottom + 14;
     }
 
     // Check if cursor hits 3D mascot mesh
@@ -306,16 +306,26 @@ async function init() {
           const bandaidScreenPx = scene.projectBandaidToScreen();
           const bandaidWorldPos = scene.getBandaidWorldPosition();
           const bandaidVis = scene.isBandaidVisible();
-          return {
-            muted: !soundManager.isEnabled(),
-            bubble: {
-              visible: bubbleManager.hasActiveBubble(),
-              text: bState.text,
-              shownAt: bState.shownAt,
-              hideAt: bState.hideAt,
-              queueLen: bState.queueLen,
-              sticky: bState.sticky,
-            },
+          const bubbleEl = bubbleManager.getActiveBubbleElement();
+          const hasCountdownBar = Boolean(bubbleEl?.querySelector('.bubble-countdown-bar'));
+          const hasInteractiveBadge = Boolean(bubbleEl?.querySelector('.bubble-badge-interactive'));
+          const isThinkingShimmer = Boolean(bubbleEl?.querySelector('.thinking-shimmer'));
+          const bubbleRect = bubbleEl ? bubbleEl.getBoundingClientRect() : null;
+            return {
+              muted: !soundManager.isEnabled(),
+              bubble: {
+                visible: bubbleManager.hasActiveBubble(),
+                text: bState.text,
+                shownAt: bState.shownAt,
+                hideAt: bState.hideAt,
+                queueLen: bState.queueLen,
+                sticky: bState.sticky,
+                hasCountdownBar,
+                hasInteractiveBadge,
+                isThinkingShimmer,
+                width: bubbleRect ? bubbleRect.width : 0,
+                height: bubbleRect ? bubbleRect.height : 0,
+              },
             mascot: {
               rootPos: animator.currentPosition.toArray(),
               rootRot: [animator.currentRotation.x, animator.currentRotation.y, animator.currentRotation.z],

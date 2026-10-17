@@ -10,13 +10,15 @@ export interface NotifyOption {
 export interface NotifyPayload {
   id?: string;
   state: MascotState;
-  message: string;
+  message?: string;
   source?: string;
   duration_ms?: number;
   sticky?: boolean;
   sound?: string;
   event?: string;
   options?: Array<string | NotifyOption>;
+  interactive?: boolean;
+  choices?: string[];
 }
 
 export interface UserChoice {

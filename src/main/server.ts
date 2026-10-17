@@ -407,8 +407,11 @@ export class NotifyServer {
       return `Invalid state: "${payload.state}". Must be one of: ${validStates.join(', ')}`;
     }
 
-    if (typeof payload.message !== 'string') {
+    if (payload.message !== undefined && typeof payload.message !== 'string') {
       return 'Field "message" must be a string';
+    }
+    if (payload.message === undefined) {
+      payload.message = '';
     }
 
     if (payload.source !== undefined && typeof payload.source !== 'string') {
@@ -429,6 +432,14 @@ export class NotifyServer {
 
     if (payload.event !== undefined && typeof payload.event !== 'string') {
       return 'Field "event" must be a string';
+    }
+
+    if (payload.interactive !== undefined && typeof payload.interactive !== 'boolean') {
+      return 'Field "interactive" must be a boolean';
+    }
+
+    if (payload.choices !== undefined && !Array.isArray(payload.choices)) {
+      return 'Field "choices" must be an array';
     }
 
     if (payload.options !== undefined && !Array.isArray(payload.options)) {
