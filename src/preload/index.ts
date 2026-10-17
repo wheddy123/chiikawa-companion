@@ -8,6 +8,8 @@ export interface ElectronAPI {
   onVisibility: (callback: (visible: boolean) => void) => () => void;
   onSoundEnabled: (callback: (enabled: boolean) => void) => () => void;
   onPlaySound: (callback: (clipOrEvent: string) => void) => () => void;
+  toggleSound: () => void;
+  setSoundEnabled: (enabled: boolean) => void;
   setIgnoreMouseEvents: (ignore: boolean, forward?: boolean) => void;
   moveWindowBy: (dx: number, dy: number) => void;
   moveWindowTo: (x: number, y: number) => void;
@@ -51,6 +53,12 @@ const api: ElectronAPI = {
     const handler = (_event: Electron.IpcRendererEvent, clipOrEvent: string) => callback(clipOrEvent);
     ipcRenderer.on('mascot:play-sound', handler);
     return () => ipcRenderer.removeListener('mascot:play-sound', handler);
+  },
+  toggleSound: () => {
+    ipcRenderer.send('mascot:toggle-sound');
+  },
+  setSoundEnabled: (enabled: boolean) => {
+    ipcRenderer.send('mascot:set-sound-enabled', enabled);
   },
   setIgnoreMouseEvents: (ignore: boolean, forward: boolean = true) => {
     ipcRenderer.send('window:set-ignore-mouse-events', ignore, forward);

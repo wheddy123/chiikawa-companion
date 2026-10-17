@@ -144,14 +144,42 @@ async function init() {
     animator.setDragging(false);
 
     if (!hasMoved) {
-      // Clicked on mascot without dragging: playful happy hop + random cute reaction sound!
-      animator.setState('success');
-      soundManager.playRandomReaction();
-      setTimeout(() => {
-        if (!bubbleManager.hasActiveBubble()) {
-          animator.setState('idle');
+      const isMouth = scene.hitTestMouth(lastDragScreenX, lastDragScreenY, latestBounds);
+      if (isMouth) {
+        // Toggle Mute with cute Band-aid sticker
+        const currentlyMuted = !soundManager.isEnabled();
+        const nextMuted = !currentlyMuted;
+        soundManager.setEnabled(!nextMuted);
+        scene.setMuted(nextMuted);
+        animator.setMuted(nextMuted);
+        window.electronAPI?.setSoundEnabled(!nextMuted);
+
+        if (nextMuted) {
+          bubbleManager.enqueue({
+            state: 'alert',
+            message: 'Mmmph!! Mmph-yaaa!! 🩹\n(Chiikawa đã bị bịt miệng. Bấm lại vào mồm để gỡ!)',
+            source: 'chiikawa',
+            duration_ms: 4500,
+          });
+        } else {
+          bubbleManager.enqueue({
+            state: 'success',
+            message: 'Haaa~! Thoát rồi! Đã gỡ băng keo và bật lại âm thanh 🎵',
+            source: 'chiikawa',
+            sound: 'usagi_yaha',
+            duration_ms: 3500,
+          });
         }
-      }, 1500);
+      } else {
+        // Clicked on mascot body without dragging: playful happy hop + random cute reaction sound!
+        animator.setState('success');
+        soundManager.playRandomReaction();
+        setTimeout(() => {
+          if (!bubbleManager.hasActiveBubble()) {
+            animator.setState('idle');
+          }
+        }, 1500);
+      }
     }
 
     // Re-evaluate hover hit test after drop
@@ -224,6 +252,8 @@ async function init() {
 
     window.electronAPI.onSoundEnabled((enabled: boolean) => {
       soundManager.setEnabled(enabled);
+      scene.setMuted(!enabled);
+      animator.setMuted(!enabled);
     });
 
     window.electronAPI.onPlaySound((clipOrEvent: string) => {

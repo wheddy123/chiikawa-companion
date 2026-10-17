@@ -9,8 +9,8 @@ const CONFIG_FILE = 'chiikawa-config.json';
 const DEFAULT_CONFIG: MascotConfig = {
   port: 7788,
   token: '',
-  windowWidth: 280,
-  windowHeight: 320,
+  windowWidth: 320,
+  windowHeight: 420,
   soundEnabled: true,
   macNotificationPosition: 'top-center',
 };
@@ -53,6 +53,9 @@ export class ConfigManager {
         const raw = fs.readFileSync(this.configPath, 'utf-8');
         const parsed = JSON.parse(raw);
         cfg = { ...cfg, ...parsed };
+        // Ensure adequate height and width for speech bubble & buttons
+        cfg.windowWidth = Math.max(cfg.windowWidth || 0, 320);
+        cfg.windowHeight = Math.max(cfg.windowHeight || 0, 420);
       } catch (e) {
         console.warn('Failed to parse config file, creating fresh config:', e);
       }

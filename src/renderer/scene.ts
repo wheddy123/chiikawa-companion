@@ -19,6 +19,9 @@ export class MascotScene {
   // Animation mixer if GLTF has embedded animations
   private mixer: THREE.AnimationMixer | null = null;
 
+  // Band-aid mesh for mute state
+  private bandaidMesh: THREE.Mesh | null = null;
+
   // Render loop control
   private isRendering = false;
   private animationFrameId: number | null = null;
@@ -138,6 +141,26 @@ export class MascotScene {
           this.modelRoot.position.copy(initialPos);
 
           this.modelRoot.add(gltf.scene);
+
+          // Create Band-Aid mesh for mute state (sticker covering Chiikawa's mouth)
+          const bandaidTex = new THREE.TextureLoader().load('./bandaid.png');
+          bandaidTex.colorSpace = THREE.SRGBColorSpace;
+          const bandaidGeo = new THREE.PlaneGeometry(0.68, 0.46);
+          const bandaidMat = new THREE.MeshBasicMaterial({
+            map: bandaidTex,
+            transparent: true,
+            alphaTest: 0.05,
+            side: THREE.DoubleSide,
+            depthWrite: false,
+          });
+          this.bandaidMesh = new THREE.Mesh(bandaidGeo, bandaidMat);
+          this.bandaidMesh.name = 'BandaidMouth';
+          // Position right on Chiikawa's mouth
+          this.bandaidMesh.position.set(0, 0.72, 0.78);
+          this.bandaidMesh.rotation.z = -0.16;
+          this.bandaidMesh.visible = false;
+          this.modelRoot.add(this.bandaidMesh);
+
           this.scene.add(this.modelRoot);
 
           // Configure animator with base transform
@@ -228,6 +251,64 @@ export class MascotScene {
     const intersects = this.raycaster.intersectObjects(this.meshes, false);
 
     return intersects.length > 0;
+  }
+
+  public setMuted(muted: boolean): void {
+    if (this.bandaidMesh) {
+      this.bandaidMesh.visible = muted;
+      if (muted) {
+        // Cute spring pop-in
+        this.bandaidMesh.scale.set(0.6, 0.6, 0.6);
+        let s = 0.6;
+        const popTimer = setInterval(() => {
+          s += 0.1;
+          if (s >= 1.0) {
+            s = 1.0;
+            clearInterval(popTimer);
+          }
+          this.bandaidMesh?.scale.set(s, s, s);
+        }, 16);
+      }
+    }
+  }
+
+  public hitTestMouth(screenX: number, screenY: number, winBounds: WindowBounds): boolean {
+    if (!this.modelRoot) return false;
+
+    const canvasRect = this.renderer.domElement.getBoundingClientRect();
+    const localX = screenX - winBounds.x - canvasRect.left;
+    const localY = screenY - winBounds.y - canvasRect.top;
+
+    if (
+      localX < 0 ||
+      localX > canvasRect.width ||
+      localY < 0 ||
+      localY > canvasRect.height
+    ) {
+      return false;
+    }
+
+    this.mouseVec.x = (localX / canvasRect.width) * 2 - 1;
+    this.mouseVec.y = -(localY / canvasRect.height) * 2 + 1;
+
+    this.raycaster.setFromCamera(this.mouseVec, this.camera);
+
+    // 1. If bandaid is visible, clicking on the bandaid is a direct hit
+    if (this.bandaidMesh && this.bandaidMesh.visible) {
+      const hits = this.raycaster.intersectObject(this.bandaidMesh, false);
+      if (hits.length > 0) return true;
+    }
+
+    // 2. Check intersection with mascot mesh in mouth world coordinates
+    const intersects = this.raycaster.intersectObjects(this.meshes, false);
+    if (intersects.length > 0) {
+      const p = intersects[0].point;
+      // Mouth is in central horizontal zone and lower face vertical zone
+      const isMouth = Math.abs(p.x) < 0.38 && p.y >= -0.75 && p.y <= -0.38 && p.z > 0.35;
+      return isMouth;
+    }
+
+    return false;
   }
 
   private onResize = (): void => {

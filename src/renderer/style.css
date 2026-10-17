@@ -28,26 +28,25 @@ html, body {
   top: 0;
   left: 0;
   width: 100%;
-  height: 130px;
+  height: calc(100% - 165px);
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   align-items: center;
-  padding: 8px 12px;
+  padding: 10px 12px;
   pointer-events: none;
   z-index: 10;
 }
 
 .bubble {
   position: relative;
-  max-width: 250px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border-radius: 14px;
-  padding: 8px 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  max-width: 295px;
+  min-width: 170px;
+  background: #ffffff;
+  border: 2.5px solid #2d2424;
+  border-radius: 22px 26px 22px 24px / 24px 22px 24px 22px;
+  padding: 10px 14px;
+  box-shadow: 4px 5px 0px #f8a5a5, 0 8px 24px rgba(0, 0, 0, 0.10);
   pointer-events: auto;
   cursor: pointer;
   transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
@@ -71,25 +70,40 @@ html, body {
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-/* Speech bubble downward tail */
+/* Cute manga pointer tail pointing towards Chiikawa */
 .bubble::after {
   content: '';
   position: absolute;
-  bottom: -6px;
+  bottom: -11px;
   left: 50%;
   transform: translateX(-50%);
   width: 0;
   height: 0;
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-top: 6px solid rgba(255, 255, 255, 0.95);
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 11px solid #ffffff;
+  z-index: 3;
+}
+
+.bubble::before {
+  content: '';
+  position: absolute;
+  bottom: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 11px solid transparent;
+  border-right: 11px solid transparent;
+  border-top: 15px solid #2d2424;
+  z-index: 2;
 }
 
 .bubble-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 3px;
+  margin-bottom: 5px;
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
@@ -104,20 +118,25 @@ html, body {
 }
 
 .bubble-queue-badge {
-  background: #e2e8f0;
-  color: #475569;
+  background: #fce7f3;
+  color: #db2777;
+  border: 1px solid #f472b6;
   border-radius: 8px;
-  padding: 1px 5px;
+  padding: 1px 6px;
   font-size: 9px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .bubble-text {
-  font-size: 12px;
-  line-height: 1.35;
+  font-size: 12.5px;
+  line-height: 1.42;
   color: #1e293b;
   word-break: break-word;
-  font-weight: 500;
+  font-weight: 550;
+  max-height: 140px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding-right: 2px;
 }
 
 /* State-specific themes */
@@ -188,61 +207,61 @@ canvas {
 .bubble-options {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
   justify-content: center;
   align-items: center;
-  margin-top: 8px;
-  padding-top: 6px;
-  border-top: 1px dashed rgba(0, 0, 0, 0.08);
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1.5px dashed rgba(45, 36, 36, 0.15);
 }
 
 .bubble-btn {
   appearance: none;
-  border: none;
+  border: 1.8px solid #2d2424;
   outline: none;
-  padding: 5px 12px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 14px;
+  font-size: 11.5px;
+  font-weight: 700;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  line-height: 1.2;
-  transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+  gap: 5px;
+  line-height: 1.25;
+  transition: all 0.12s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 2px 2.5px 0px #2d2424;
   pointer-events: auto;
 }
 
 .bubble-btn:hover {
-  transform: translateY(-1.5px) scale(1.03);
+  transform: translate(-1px, -1.5px) scale(1.02);
+  box-shadow: 3px 3.5px 0px #2d2424;
 }
 
 .bubble-btn:active, .bubble-btn.selected {
-  transform: scale(0.95);
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px #2d2424;
 }
 
 .bubble-btn-primary {
-  background: #10b981;
+  background: #22c55e;
   color: #ffffff;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
 }
 .bubble-btn-primary:hover {
-  background: #059669;
+  background: #16a34a;
 }
 
 .bubble-btn-danger {
   background: #ef4444;
   color: #ffffff;
-  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.35);
 }
 .bubble-btn-danger:hover {
   background: #dc2626;
 }
 
 .bubble-btn-secondary {
-  background: #f1f5f9;
+  background: #f8fafc;
   color: #334155;
   border: 1px solid #cbd5e1;
 }

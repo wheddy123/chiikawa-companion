@@ -50,6 +50,11 @@ async function bootstrap() {
     }
   };
 
+  windowManager.onSoundToggled = (enabled: boolean) => {
+    configManager.updateConfig({ soundEnabled: enabled });
+    trayManager.updateSoundState(enabled);
+  };
+
   // Tray / Menu Bar setup
   trayManager = new TrayManager(configManager, win, winHandler, macHandler);
 

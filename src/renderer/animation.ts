@@ -42,6 +42,9 @@ export class ProceduralAnimator {
   private smoothedDragVelocity = new THREE.Vector2(0, 0);
   private releaseSpringTime: number = 999;
 
+  // Band-aid Muted struggle state
+  private isMuted: boolean = false;
+
   constructor() {
     this.reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', (e) => {
@@ -56,6 +59,14 @@ export class ProceduralAnimator {
 
   public getCpuLoad(): number {
     return this.currentCpuLoad;
+  }
+
+  public setMuted(muted: boolean): void {
+    this.isMuted = muted;
+  }
+
+  public getMuted(): boolean {
+    return this.isMuted;
   }
 
   public setBaseTransform(position: THREE.Vector3, scale: THREE.Vector3): void {
@@ -165,6 +176,24 @@ export class ProceduralAnimator {
       this.currentRotation.x = targetPose.rot.x + this.currentCursorRotX;
       this.currentRotation.y = targetPose.rot.y + this.currentCursorRotY;
       this.currentRotation.z = targetPose.rot.z;
+    }
+
+    // 🩹 Cute muffled struggle animation when muted ("vung tay vung chân" / panicked flailing)
+    if (this.isMuted && !this.isDragging) {
+      const struggleTime = this.stateTime;
+      // High-frequency frantic wobbling
+      this.currentRotation.z += Math.sin(struggleTime * 26.0) * 0.12;
+      this.currentRotation.x += Math.cos(struggleTime * 22.0) * 0.08;
+      this.currentRotation.y += Math.sin(struggleTime * 18.0) * 0.09;
+
+      // Panicked squishing and stretching
+      const squish = 1.0 + Math.sin(struggleTime * 20.0) * 0.09;
+      this.currentScale.y *= squish;
+      this.currentScale.x /= Math.sqrt(squish);
+
+      // Frantic little hops & horizontal jitter
+      this.currentPosition.y += Math.abs(Math.sin(struggleTime * 14.0)) * 0.12;
+      this.currentPosition.x += Math.sin(struggleTime * 28.0) * 0.04;
     }
 
     // 🐾 Apply soft mochi squishy drag & gentle cute dangling

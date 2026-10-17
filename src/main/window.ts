@@ -9,6 +9,7 @@ export class WindowManager {
   private isIgnoringMouseEvents = true;
   public onBubbleDismissed?: () => void;
   public onWindowMoved?: () => void;
+  public onSoundToggled?: (enabled: boolean) => void;
 
   constructor(config: MascotConfig) {
     this.config = config;
@@ -129,6 +130,26 @@ export class WindowManager {
     ipcMain.on('mascot:bubble-dismissed', () => {
       if (this.onBubbleDismissed) {
         this.onBubbleDismissed();
+      }
+    });
+
+    ipcMain.on('mascot:toggle-sound', () => {
+      this.config.soundEnabled = !this.config.soundEnabled;
+      if (this.onSoundToggled) {
+        this.onSoundToggled(this.config.soundEnabled);
+      }
+      if (this.window && !this.window.isDestroyed()) {
+        this.window.webContents.send('mascot:sound-enabled', this.config.soundEnabled);
+      }
+    });
+
+    ipcMain.on('mascot:set-sound-enabled', (_event, enabled: boolean) => {
+      this.config.soundEnabled = enabled;
+      if (this.onSoundToggled) {
+        this.onSoundToggled(enabled);
+      }
+      if (this.window && !this.window.isDestroyed()) {
+        this.window.webContents.send('mascot:sound-enabled', enabled);
       }
     });
 
