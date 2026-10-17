@@ -31,6 +31,11 @@ export class ProceduralAnimator {
   // Reduced motion preference
   private reducedMotion: boolean = false;
 
+  // Drag squish & squirm physics
+  private isDragging: boolean = false;
+  private dragVelocity = new THREE.Vector2(0, 0);
+  private releaseSpringTime: number = 999;
+
   constructor() {
     this.reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', (e) => {
@@ -88,6 +93,14 @@ export class ProceduralAnimator {
     this.cursorTargetRotX = THREE.MathUtils.clamp(dy * maxAngleX, -maxAngleX, maxAngleX);
   }
 
+  public setDragging(dragging: boolean, vx: number = 0, vy: number = 0): void {
+    if (this.isDragging && !dragging) {
+      this.releaseSpringTime = 0;
+    }
+    this.isDragging = dragging;
+    this.dragVelocity.set(vx, vy);
+  }
+
   public update(delta: number): void {
     this.stateTime += delta;
 
@@ -128,6 +141,33 @@ export class ProceduralAnimator {
       this.currentRotation.x = targetPose.rot.x + this.currentCursorRotX;
       this.currentRotation.y = targetPose.rot.y + this.currentCursorRotY;
       this.currentRotation.z = targetPose.rot.z;
+    }
+
+    // 🐾 Apply squishy drag deformation and frantic squirming/dangling
+    if (this.isDragging) {
+      const speed = Math.hypot(this.dragVelocity.x, this.dragVelocity.y);
+      // Soft dough mochi stretching effect
+      const stretch = 1.0 + Math.min(0.3, speed * 0.012 + 0.15);
+      this.currentScale.y *= stretch;
+      this.currentScale.x /= Math.sqrt(stretch);
+      this.currentScale.z /= Math.sqrt(stretch);
+
+      // Inertia tilt lagging against mouse motion
+      this.currentRotation.z -= THREE.MathUtils.clamp(this.dragVelocity.x * 0.025, -0.3, 0.3);
+      this.currentRotation.x += THREE.MathUtils.clamp(this.dragVelocity.y * 0.02, -0.25, 0.25);
+
+      // Frantic cute squirming / dangling feet while being held up in the air!
+      const squirm = Math.sin(this.stateTime * 32.0) * 0.16;
+      this.currentRotation.z += squirm;
+      this.currentPosition.y += Math.abs(Math.sin(this.stateTime * 24.0)) * 0.09;
+      this.currentPosition.x += Math.sin(this.stateTime * 26.0) * 0.04;
+    } else if (this.releaseSpringTime < 0.5) {
+      // Jello spring rebound after release
+      this.releaseSpringTime += delta;
+      const spring = Math.sin(this.releaseSpringTime * 22.0) * Math.exp(-this.releaseSpringTime * 8.5) * 0.22;
+      this.currentScale.y *= (1.0 - spring);
+      this.currentScale.x *= (1.0 + spring * 0.5);
+      this.currentScale.z *= (1.0 + spring * 0.5);
     }
   }
 

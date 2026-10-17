@@ -180,9 +180,130 @@ canvas {
   background: transparent !important;
 }
 
+/* Chat container & UI */
+.chat-container {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 25;
+  pointer-events: auto;
+  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.chat-container.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-8px) scale(0.95);
+}
+
+.chat-box {
+  width: 100%;
+  max-width: 260px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 14px;
+  padding: 8px 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), 0 2px 6px rgba(0, 0, 0, 0.08);
+  border: 1.5px solid rgba(147, 197, 253, 0.7);
+}
+
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.chat-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+.chat-close-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  line-height: 1;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.chat-close-btn:hover {
+  color: #475569;
+}
+
+.chat-input-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+#chat-input {
+  flex: 1;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 5px 8px;
+  font-size: 11px;
+  outline: none;
+  color: #1e293b;
+  background: #f8fafc;
+}
+#chat-input:focus {
+  border-color: #3b82f6;
+  background: #ffffff;
+}
+
+.chat-send-btn {
+  background: #3b82f6;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.chat-send-btn:hover {
+  background: #2563eb;
+}
+
+/* Chat toggle button */
+.chat-toggle-btn {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  pointer-events: auto;
+  z-index: 15;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.15s ease;
+}
+.chat-toggle-btn:hover {
+  transform: scale(1.15);
+  background: #ffffff;
+}
+
 /* Reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
-  .bubble, .bubble.state-alert {
+  .bubble, .bubble.state-alert, .chat-container, .chat-toggle-btn {
     animation: none !important;
     transition: opacity 0.1s ease !important;
   }

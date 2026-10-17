@@ -47,7 +47,97 @@ async function init() {
   // Mouse hit-testing state tracking
   let isMouseHovering = false;
 
+  // Chat box elements
+  const chatContainer = document.getElementById('chat-container')!;
+  const chatInput = document.getElementById('chat-input') as HTMLInputElement;
+  const chatSendBtn = document.getElementById('chat-send')!;
+  const chatCloseBtn = document.getElementById('chat-close')!;
+  const chatToggleBtn = document.getElementById('chat-toggle-btn')!;
+
+  let isChatOpen = false;
+
+  const openChat = () => {
+    isChatOpen = true;
+    chatContainer.classList.remove('hidden');
+    chatInput.focus();
+    window.electronAPI?.setIgnoreMouseEvents(false);
+  };
+
+  const closeChat = () => {
+    isChatOpen = false;
+    chatContainer.classList.add('hidden');
+    chatInput.blur();
+  };
+
+  const sendPrompt = () => {
+    const text = chatInput.value.trim();
+    if (!text) return;
+    chatInput.value = '';
+    closeChat();
+
+    // Show prompt in speech bubble
+    bubbleManager.enqueue({
+      state: 'thinking',
+      message: text,
+      source: 'sếp',
+      duration_ms: 6000,
+    });
+
+    // Send prompt to local server / pending agent queue
+    fetch('http://127.0.0.1:7788/chat/input', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: text, timestamp: Date.now() }),
+    }).catch(() => {});
+
+    // Chiikawa cute acknowledgment after thinking for a moment
+    setTimeout(() => {
+      bubbleManager.enqueue({
+        state: 'success',
+        message: 'Chiikawa đã ghi nhận rồi sếp ơi! Đang chuyển tiếp cho Agent xử lý 🐾',
+        source: 'chiikawa',
+        duration_ms: 4500,
+      });
+    }, 2400);
+  };
+
+  chatToggleBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (isChatOpen) {
+      closeChat();
+    } else {
+      openChat();
+    }
+  });
+
+  chatCloseBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    closeChat();
+  });
+
+  chatSendBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    sendPrompt();
+  });
+
+  chatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      sendPrompt();
+    } else if (e.key === 'Escape') {
+      closeChat();
+    }
+  });
+
   const updateHitTest = (cursor: CursorPosition, winBounds: WindowBounds) => {
+    if (isChatOpen) {
+      if (window.electronAPI && isMouseHovering !== true) {
+        isMouseHovering = true;
+        window.electronAPI.setIgnoreMouseEvents(false);
+      }
+      return;
+    }
+
     // Check if cursor is over speech bubble
     const bubbleEl = bubbleManager.getActiveBubbleElement();
     let hitBubble = false;
@@ -62,32 +152,43 @@ async function init() {
         localY <= rect.bottom;
     }
 
+    // Check if cursor is over chat toggle button
+    const toggleRect = chatToggleBtn.getBoundingClientRect();
+    const localX = cursor.x - winBounds.x;
+    const localY = cursor.y - winBounds.y;
+    const hitToggle =
+      localX >= toggleRect.left &&
+      localX <= toggleRect.right &&
+      localY >= toggleRect.top &&
+      localY <= toggleRect.bottom;
+
     // Check if cursor hits 3D mascot mesh
     const hitMesh = scene.hitTest(cursor.x, cursor.y, winBounds);
 
-    const isHit = hitBubble || hitMesh;
+    const isHit = hitBubble || hitMesh || hitToggle;
 
     if (isHit !== isMouseHovering) {
       isMouseHovering = isHit;
       if (window.electronAPI) {
-        // When hovered, do not ignore mouse events so clicks reach bubble/mascot
-        // When not hovered, ignore mouse events and forward to desktop/windows behind
         window.electronAPI.setIgnoreMouseEvents(!isHit, true);
       }
     }
   };
 
-  // Drag and click handling for Chiikawa mascot
+  // Drag and click handling for Chiikawa mascot with squish physics
   let isDragging = false;
   let dragStartX = 0;
   let dragStartY = 0;
   let hasMoved = false;
 
   window.addEventListener('mousedown', (e: MouseEvent) => {
-    // Check if clicked on bubble
+    // Check if clicked on bubble or chat
     const bubbleEl = bubbleManager.getActiveBubbleElement();
     if (bubbleEl && bubbleEl.contains(e.target as Node)) {
-      return; // let bubble handle its own click
+      return;
+    }
+    if (chatContainer.contains(e.target as Node) || chatToggleBtn.contains(e.target as Node)) {
+      return;
     }
 
     if (isMouseHovering) {
@@ -107,19 +208,26 @@ async function init() {
         dragStartX = e.screenX;
         dragStartY = e.screenY;
         window.electronAPI?.moveWindowBy(dx, dy);
+        // 🐾 Trigger squishy stretching and squirming!
+        animator.setDragging(true, dx * 1.8, dy * 1.8);
       }
     }
   });
 
   window.addEventListener('mouseup', () => {
-    if (isDragging && !hasMoved) {
-      // Clicked on mascot without dragging: playful happy hop!
-      animator.setState('success');
-      setTimeout(() => {
-        if (!bubbleManager.hasActiveBubble()) {
-          animator.setState('idle');
-        }
-      }, 1500);
+    if (isDragging) {
+      // 🐾 Release jello spring rebound
+      animator.setDragging(false);
+
+      if (!hasMoved) {
+        // Clicked on mascot without dragging: playful happy hop!
+        animator.setState('success');
+        setTimeout(() => {
+          if (!bubbleManager.hasActiveBubble()) {
+            animator.setState('idle');
+          }
+        }, 1500);
+      }
     }
     isDragging = false;
   });

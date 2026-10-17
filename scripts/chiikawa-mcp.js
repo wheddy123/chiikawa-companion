@@ -125,6 +125,41 @@ function checkHealth() {
   });
 }
 
+function getPendingPrompt() {
+  return new Promise((resolve) => {
+    const config = loadConfig();
+    const port = config.port || 7788;
+
+    const req = http.get(
+      {
+        hostname: '127.0.0.1',
+        port: port,
+        path: '/chat/prompt',
+        headers: { Host: `127.0.0.1:${port}` },
+        timeout: 1500,
+      },
+      (res) => {
+        let body = '';
+        res.on('data', (c) => (body += c));
+        res.on('end', () => {
+          try {
+            const data = JSON.parse(body);
+            resolve({ ok: true, prompt: data.prompt });
+          } catch (e) {
+            resolve({ ok: false, prompt: null });
+          }
+        });
+      }
+    );
+
+    req.on('error', () => resolve({ ok: false, prompt: null }));
+    req.on('timeout', () => {
+      req.destroy();
+      resolve({ ok: false, prompt: null });
+    });
+  });
+}
+
 // Tool definitions for MCP
 const TOOLS = [
   {
@@ -184,6 +219,15 @@ const TOOLS = [
   {
     name: 'chiikawa_status',
     description: 'Check if the Chiikawa Companion desktop application is currently running.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+  {
+    name: 'chiikawa_get_user_prompt',
+    description:
+      'Fetch the next pending user prompt or message typed in the Chiikawa desktop chat box. Useful for AI agents to listen for instructions from the desktop mascot.',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -306,6 +350,24 @@ async function handleRpc(msg) {
             {
               type: 'text',
               text: JSON.stringify(health, null, 2),
+            },
+          ],
+        },
+      };
+    }
+
+    if (name === 'chiikawa_get_user_prompt') {
+      const res = await getPendingPrompt();
+      return {
+        jsonrpc: '2.0',
+        id,
+        result: {
+          content: [
+            {
+              type: 'text',
+              text: res.prompt
+                ? `Pending prompt: "${res.prompt}"`
+                : 'No pending prompt from user.',
             },
           ],
         },

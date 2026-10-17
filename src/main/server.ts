@@ -16,6 +16,7 @@ export class NotifyServer {
   private requestTimestamps: number[] = [];
   private readonly MAX_REQUESTS_PER_SECOND = 40;
   private readonly MAX_BODY_BYTES = 4096; // 4KB
+  private pendingPrompts: string[] = [];
 
   constructor(port: number, token: string, callbacks: ServerCallbacks) {
     this.port = port;
@@ -87,6 +88,31 @@ export class NotifyServer {
     // Route: GET /health (does not require auth)
     if (method === 'GET' && (url === '/health' || url === '/health/')) {
       this.sendJsonResponse(res, 200, { ok: true, platform: process.platform });
+      return;
+    }
+
+    // Route: POST /chat/input (called from local renderer chat UI)
+    if (method === 'POST' && (url === '/chat/input' || url === '/chat/input/')) {
+      let body = '';
+      req.on('data', (c) => (body += c));
+      req.on('end', () => {
+        try {
+          const data = JSON.parse(body);
+          if (data && data.prompt) {
+            this.pendingPrompts.push(String(data.prompt));
+          }
+          this.sendJsonResponse(res, 200, { ok: true });
+        } catch (e) {
+          this.sendJsonResponse(res, 400, { error: 'Invalid JSON' });
+        }
+      });
+      return;
+    }
+
+    // Route: GET /chat/prompt (fetch pending prompt for coding agent)
+    if (method === 'GET' && (url === '/chat/prompt' || url === '/chat/prompt/')) {
+      const nextPrompt = this.pendingPrompts.shift() || null;
+      this.sendJsonResponse(res, 200, { ok: true, prompt: nextPrompt });
       return;
     }
 
