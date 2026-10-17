@@ -1,0 +1,17 @@
+{
+  "chiikawa-safety-gate": {
+    "enabled": true,
+    "PreToolUse": [
+      {
+        "matcher": "run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/safety-gate.js",
+            "timeout": 45
+          }
+        ]
+      }
+    ]
+  }
+}

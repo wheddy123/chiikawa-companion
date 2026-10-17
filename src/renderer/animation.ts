@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { MascotState, CursorPosition, WindowBounds } from '../types';
+import type { MascotState, CursorPosition, WindowBounds, SystemTelemetry } from '../types';
 
 export class ProceduralAnimator {
   private currentState: MascotState = 'idle';
@@ -28,6 +28,11 @@ export class ProceduralAnimator {
   private currentCursorRotY: number = 0;
   private currentCursorRotX: number = 0;
 
+  // Living Mascot Hardware Telemetry modulation
+  private targetCpuLoad: number = 0.15; // 0.0 to 1.0
+  private currentCpuLoad: number = 0.15;
+  private memPressure: number = 0.50; // 0.0 to 1.0
+
   // Reduced motion preference
   private reducedMotion: boolean = false;
 
@@ -42,6 +47,15 @@ export class ProceduralAnimator {
     window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', (e) => {
       this.reducedMotion = e.matches;
     });
+  }
+
+  public setTelemetry(telemetry: SystemTelemetry): void {
+    this.targetCpuLoad = Math.max(0, Math.min(1, telemetry.cpuUsagePercent / 100));
+    this.memPressure = Math.max(0, Math.min(1, telemetry.memUsagePercent / 100));
+  }
+
+  public getCpuLoad(): number {
+    return this.currentCpuLoad;
   }
 
   public setBaseTransform(position: THREE.Vector3, scale: THREE.Vector3): void {
@@ -121,6 +135,10 @@ export class ProceduralAnimator {
     const smoothDamp = 1.0 - Math.exp(-12.0 * delta);
     this.currentCursorRotY += (this.cursorTargetRotY - this.currentCursorRotY) * smoothDamp;
     this.currentCursorRotX += (this.cursorTargetRotX - this.currentCursorRotX) * smoothDamp;
+
+    // Smooth CPU load transitions for Living Mascot
+    const cpuDamp = 1.0 - Math.exp(-2.5 * delta);
+    this.currentCpuLoad += (this.targetCpuLoad - this.currentCpuLoad) * cpuDamp;
 
     if (this.reducedMotion) {
       this.currentPosition.copy(this.basePosition);
@@ -204,15 +222,30 @@ export class ProceduralAnimator {
 
     switch (state) {
       case 'idle': {
-        // Natural seated breathing rhythm: gentle chest expansion while bottom stays grounded
-        const breathe = Math.sin(t * 1.8);
-        scale.y *= 1 + breathe * 0.016;
-        scale.x *= 1 - breathe * 0.01;
-        scale.z *= 1 - breathe * 0.01;
+        // Living Mascot: Breathing frequency modulates from 1.2Hz (chill/cool) up to 3.8Hz (heavy CPU load)
+        const breatheFreq = 1.2 + this.currentCpuLoad * 2.6;
+        const breatheAmp = 0.012 + this.currentCpuLoad * 0.018;
+        const breathe = Math.sin(t * breatheFreq);
 
-        // Soft idle seated head tilt looking slightly upward at user
-        rot.x = -0.04 + Math.sin(t * 1.2) * 0.012;
-        rot.z = Math.sin(t * 0.9) * 0.02;
+        scale.y *= 1 + breathe * breatheAmp;
+        scale.x *= 1 - breathe * (breatheAmp * 0.6);
+        scale.z *= 1 - breathe * (breatheAmp * 0.6);
+
+        // High CPU load panting / working hard reaction (> 65% CPU)
+        if (this.currentCpuLoad > 0.65) {
+          const effortHop = Math.abs(Math.sin(t * breatheFreq)) * (this.currentCpuLoad - 0.65) * 0.05;
+          pos.y += effortHop;
+          rot.x = -0.08 + Math.sin(t * 2.2) * 0.02; // focused forward tilt
+        } else {
+          // Cool & relaxed idle head sway
+          rot.x = -0.04 + Math.sin(t * 1.2) * 0.012;
+          rot.z = Math.sin(t * 0.9) * 0.02;
+        }
+
+        // Memory pressure alert subtle tremble (> 90% RAM)
+        if (this.memPressure > 0.90) {
+          pos.x += Math.sin(t * 28.0) * 0.008;
+        }
         break;
       }
 

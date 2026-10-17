@@ -3,7 +3,7 @@ import { MascotScene } from './scene';
 import { SpeechBubbleManager } from './bubble';
 import { SoundManager } from './audio';
 import type { ElectronAPI } from '../preload';
-import type { CursorPosition, WindowBounds, NotifyPayload, NotifyOption, UserChoice } from '../types';
+import type { CursorPosition, WindowBounds, NotifyPayload, NotifyOption, UserChoice, SystemTelemetry } from '../types';
 
 declare global {
   interface Window {
@@ -228,6 +228,10 @@ async function init() {
 
     window.electronAPI.onPlaySound((clipOrEvent: string) => {
       soundManager.play(clipOrEvent);
+    });
+
+    window.electronAPI.onTelemetry((telemetry: SystemTelemetry) => {
+      animator.setTelemetry(telemetry);
     });
 
     // Notify main that renderer is ready

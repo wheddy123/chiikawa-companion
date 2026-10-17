@@ -1,10 +1,11 @@
 import http from 'http';
-import type { NotifyPayload, MascotState, UserChoice } from '../types';
+import type { NotifyPayload, MascotState, UserChoice, SystemTelemetry } from '../types';
 
 export interface ServerCallbacks {
   onNotify: (payload: NotifyPayload) => void;
   onToggleRaycast?: () => void;
   onPlaySound?: (clipOrEvent: string) => void;
+  getTelemetry?: () => SystemTelemetry | null;
 }
 
 export class NotifyServer {
@@ -218,6 +219,13 @@ export class NotifyServer {
           this.sendJsonResponse(res, 400, { error: 'Invalid JSON body' });
         }
       });
+      return;
+    }
+
+    // Route: GET /telemetry
+    if (method === 'GET' && (url === '/telemetry' || url === '/telemetry/')) {
+      const data = this.callbacks.getTelemetry ? this.callbacks.getTelemetry() : null;
+      this.sendJsonResponse(res, 200, { ok: true, telemetry: data });
       return;
     }
 

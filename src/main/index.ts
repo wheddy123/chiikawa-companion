@@ -5,6 +5,7 @@ import { NotifyServer } from './server';
 import { TrayManager } from './tray';
 import { WindowsPlatformHandler } from './platform/win';
 import { MacPlatformHandler } from './platform/mac';
+import { TelemetryManager } from './telemetry';
 import type { NotifyPayload } from '../types';
 
 // Enforce single instance lock
@@ -18,6 +19,7 @@ if (!gotTheLock) {
 let configManager: ConfigManager;
 let windowManager: WindowManager;
 let notifyServer: NotifyServer;
+let telemetryManager: TelemetryManager;
 let trayManager: TrayManager;
 let winHandler: WindowsPlatformHandler | undefined;
 let macHandler: MacPlatformHandler | undefined;
@@ -51,6 +53,14 @@ async function bootstrap() {
   // Tray / Menu Bar setup
   trayManager = new TrayManager(configManager, win, winHandler, macHandler);
 
+  // Initialize Telemetry Manager for Living Mascot
+  telemetryManager = new TelemetryManager((telemetry) => {
+    if (!win.isDestroyed()) {
+      win.webContents.send('mascot:telemetry', telemetry);
+    }
+  });
+  telemetryManager.start(2000);
+
   // Initialize and start HTTP Notify Server
   notifyServer = new NotifyServer(config.port, config.token, {
     onNotify: (payload: NotifyPayload) => {
@@ -71,6 +81,7 @@ async function bootstrap() {
         win.webContents.send('mascot:play-sound', clipOrEvent);
       }
     },
+    getTelemetry: () => telemetryManager.getLatest(),
   });
 
   try {

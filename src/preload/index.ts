@@ -1,9 +1,10 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { NotifyPayload, CursorPosition, WindowBounds } from '../types';
+import type { NotifyPayload, CursorPosition, WindowBounds, SystemTelemetry } from '../types';
 
 export interface ElectronAPI {
   onNotify: (callback: (payload: NotifyPayload) => void) => () => void;
   onCursor: (callback: (pos: CursorPosition, winBounds: WindowBounds) => void) => () => void;
+  onTelemetry: (callback: (data: SystemTelemetry) => void) => () => void;
   onVisibility: (callback: (visible: boolean) => void) => () => void;
   onSoundEnabled: (callback: (enabled: boolean) => void) => () => void;
   onPlaySound: (callback: (clipOrEvent: string) => void) => () => void;
@@ -30,6 +31,11 @@ const api: ElectronAPI = {
     ) => callback(pos, winBounds);
     ipcRenderer.on('mascot:cursor', handler);
     return () => ipcRenderer.removeListener('mascot:cursor', handler);
+  },
+  onTelemetry: (callback) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: SystemTelemetry) => callback(data);
+    ipcRenderer.on('mascot:telemetry', handler);
+    return () => ipcRenderer.removeListener('mascot:telemetry', handler);
   },
   onVisibility: (callback) => {
     const handler = (_event: Electron.IpcRendererEvent, visible: boolean) => callback(visible);

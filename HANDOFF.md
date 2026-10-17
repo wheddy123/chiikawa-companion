@@ -1,10 +1,10 @@
 # 🐾 Chiikawa Companion — Comprehensive Project Handoff Context
 
-> **Version**: `v1.0.7`  
+> **Version**: `v1.0.8`  
 > **Repository**: [https://github.com/wheddy123/chiikawa-companion](https://github.com/wheddy123/chiikawa-companion)  
 > **Last Updated**: 2026-10-17  
 > **Target OS**: macOS (Apple Silicon / Intel) & Windows 10/11  
-> **Status**: Production-ready desk mascot with 3D animation, liquid physics, 1-click HITL decision buttons, and MCP server integration.
+> **Status**: Production-ready desk mascot with 3D animation, liquid physics, living telemetry rhythm, native Antigravity PreToolUse safety gate, and 1-click HITL decision buttons.
 
 ---
 
@@ -172,6 +172,7 @@ All requests require the `Authorization: Bearer <token>` header (found in `chiik
 | `/health` | `GET` | None | Returns `{ "ok": true, "platform": "darwin" }`. |
 | `/notify` | `POST` | `{ message, state, sound, duration_ms }` | Pops an informational speech bubble with audio. |
 | `/ask` | `POST` | `{ question, options: [{id, label, style, sound}], timeout_ms }` | Displays 1-click decision buttons; blocks until human clicks or times out. |
+| `/telemetry` | `GET` | None (Bearer token) | Returns real-time `{ cpuUsagePercent, memUsagePercent, loadAvg, cores }`. |
 | `/action/choice`| `POST` | `{ id, label, questionId, timestamp }` | Internal/external webhook to submit a decision. |
 | `/choice` | `GET` | `?questionId=...` | Polls for user decision if not using blocking `/ask`. |
 | `/play-sound` | `POST` | `{ clip: "usagi_yaha" }` | Directly plays any authentic voice clip. |
@@ -184,7 +185,7 @@ curl -s -X POST http://127.0.0.1:7788/ask \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "question": "Deploy release v1.0.7 to production?",
+    "question": "Deploy release v1.0.8 to production?",
     "state": "thinking",
     "sound": "nani_nani",
     "options": [
@@ -194,7 +195,33 @@ curl -s -X POST http://127.0.0.1:7788/ask \
   }'
 ```
 
-### Model Context Protocol (MCP) Configuration
+### 5.2 🫀 Living Mascot Telemetry (Feature A)
+Chiikawa phản ánh nhịp tim và trạng thái phần cứng của máy tính trong thời gian thực:
+- **Sampling Engine** (`src/main/telemetry.ts`): Lấy mẫu `os.cpus()`, `os.freemem()`, `os.loadavg()` định kỳ 2000ms với overhead cực nhẹ (< 0.05ms).
+- **IPC Broadcast**: Main process gửi kênh `mascot:telemetry` tới Renderer.
+- **Rhythmic Modulation** (`src/renderer/animation.ts`):
+  - **Tần số thở (Breathing Frequency)**: Chuyển mượt từ `1.2 Hz` (khi CPU nhàn rỗi < 10%) lên đến `3.8 Hz` (khi CPU tải nặng > 80%).
+  - **Biên độ nhấp nhô (Amplitude)**: Tăng từ `0.025` lên `0.065`, mascot nhấp nhô rõ rệt như đang thở dốc khi máy tính đang build code hoặc chạy mô hình AI.
+  - **Nhịp thở hổn hển & run rẩy**: Khi CPU > 75%, Chiikawa kích hoạt bước nhảy thở dốc nhẹ (`panting hop`); khi RAM > 90%, cơ thể mascot run rẩy nhẹ cảnh báo áp lực bộ nhớ.
+
+### 5.3 🛡️ Native PreToolUse Safety Gate (Feature B)
+Tích hợp trực tiếp với Antigravity CLI Lifecycle Hooks (`.agents/hooks.json` và `.agents/scripts/safety-gate.js`):
+- **Cơ chế hoạt động**: Khi Antigravity CLI chuẩn bị thực thi lệnh qua `run_command`, hook script chặn trước ở tầng runtime.
+- **Kiểm duyệt lệnh phá hoại**: Quét regex các mẫu lệnh nguy hiểm như `rm -rf`, `git reset --hard`, `git push --force`, `mkfs`, `dd of=/dev`, `fdisk`, `chmod 777 /`,...
+- **Interactive Authorization**:
+  - Tự động gọi `POST http://127.0.0.1:7788/ask` sang Chiikawa.
+  - Chiikawa trên màn hình lập tức phát âm thanh `nani_nani`, rung lắc cảnh báo và hiển thị câu hỏi kèm 2 nút: `Cho phép (Authorize) 🚀` và `Chặn lại (Block) 🛡️`.
+  - Nếu Operator bấm cho phép -> Trả về `{"decision": "allow"}` cho Antigravity tiếp tục.
+  - Nếu Operator bấm từ chối hoặc hết 30s -> Trả về `{"decision": "deny"}` chặn đứng lệnh ngay lập tức!
+  - Nếu Chiikawa Mascot offline -> Tự động fallback sang cơ chế `{"decision": "force_ask"}` native của Antigravity CLI.
+
+### 5.4 ⌨️ Typewriter Streaming for Speech Bubble (Feature C Blueprint)
+Kiến trúc luồng phản hồi văn bản thời gian thực (real-time token streaming) kết hợp hoạt ảnh đồng bộ:
+- **Khái niệm**: Thay vì hiển thị toàn bộ đoạn văn bản dài một cách đột ngột khi agent hoàn thành câu trả lời, speech bubble hiển thị chữ chạy từng ký tự/từng từ mượt mà (typewriter effect) kèm con trỏ nhấp nháy (`▌`).
+- **Head Bob & Lip Sync Procedural**: Khi text đang được stream vào bubble, Chiikawa thực hiện các nhịp gật đầu nhẹ (`head tilt` và `lip sync hop`) ở tần số 8–10Hz theo tốc độ ký tự, tạo cảm giác Chiikawa thực sự đang "nói" từng lời với Operator.
+- **Thanh năng lượng tiến trình (Agent Progress Gauge)**: Dải màu mỏng hiển thị phần trăm tiến độ tác vụ dưới chân bong bóng thoại.
+
+### 5.5 Model Context Protocol (MCP) Configuration
 In Antigravity (`~/.gemini/antigravity-cli/config.json`) or Claude Desktop (`claude_desktop_config.json`):
 
 ```json

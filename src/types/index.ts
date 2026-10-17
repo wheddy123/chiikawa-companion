@@ -47,3 +47,11 @@ export interface MascotConfig {
   soundEnabled: boolean;
   macNotificationPosition: 'top-center' | 'bottom-right';
 }
+
+export interface SystemTelemetry {
+  cpuUsagePercent: number; // 0 to 100
+  memUsagePercent: number; // 0 to 100
+  loadAvg: number[];
+  cores: number;
+}
+
