@@ -44,6 +44,7 @@ export class ProceduralAnimator {
 
   // Band-aid Muted struggle state
   private isMuted: boolean = false;
+  private struggleTimer: number = 0;
 
   constructor() {
     this.reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -63,6 +64,18 @@ export class ProceduralAnimator {
 
   public setMuted(muted: boolean): void {
     this.isMuted = muted;
+    if (muted) {
+      // Brief 1.6s comical protest struggle, then calm down
+      this.struggleTimer = 1.6;
+    } else {
+      this.struggleTimer = 0;
+    }
+  }
+
+  public triggerStruggle(duration: number = 1.0): void {
+    if (this.isMuted) {
+      this.struggleTimer = duration;
+    }
   }
 
   public getMuted(): boolean {
@@ -178,22 +191,29 @@ export class ProceduralAnimator {
       this.currentRotation.z = targetPose.rot.z;
     }
 
-    // 🩹 Cute muffled struggle animation when muted ("vung tay vung chân" / panicked flailing)
+    // 🩹 Brief comical muffled struggle animation when muted ("vung tay vung chân")
     if (this.isMuted && !this.isDragging) {
-      const struggleTime = this.stateTime;
-      // High-frequency frantic wobbling
-      this.currentRotation.z += Math.sin(struggleTime * 26.0) * 0.12;
-      this.currentRotation.x += Math.cos(struggleTime * 22.0) * 0.08;
-      this.currentRotation.y += Math.sin(struggleTime * 18.0) * 0.09;
+      if (this.struggleTimer > 0) {
+        this.struggleTimer = Math.max(0, this.struggleTimer - delta);
+        const intensity = Math.min(1.0, this.struggleTimer / 1.0);
+        const struggleTime = this.stateTime;
 
-      // Panicked squishing and stretching
-      const squish = 1.0 + Math.sin(struggleTime * 20.0) * 0.09;
-      this.currentScale.y *= squish;
-      this.currentScale.x /= Math.sqrt(squish);
+        // Frantic comical wobbling that decays smoothly
+        this.currentRotation.z += Math.sin(struggleTime * 24.0) * (0.09 * intensity);
+        this.currentRotation.x += Math.cos(struggleTime * 20.0) * (0.05 * intensity);
+        this.currentRotation.y += Math.sin(struggleTime * 16.0) * (0.06 * intensity);
 
-      // Frantic little hops & horizontal jitter
-      this.currentPosition.y += Math.abs(Math.sin(struggleTime * 14.0)) * 0.12;
-      this.currentPosition.x += Math.sin(struggleTime * 28.0) * 0.04;
+        // Panicked squishing and stretching
+        const squish = 1.0 + Math.sin(struggleTime * 18.0) * (0.06 * intensity);
+        this.currentScale.y *= squish;
+        this.currentScale.x /= Math.sqrt(squish);
+
+        // Frantic little hops
+        this.currentPosition.y += Math.abs(Math.sin(struggleTime * 12.0)) * (0.06 * intensity);
+      } else {
+        // Settled into calm cute sulking pose with bandage on
+        this.currentRotation.x -= 0.03; // slight cute pout
+      }
     }
 
     // 🐾 Apply soft mochi squishy drag & gentle cute dangling
@@ -251,30 +271,17 @@ export class ProceduralAnimator {
 
     switch (state) {
       case 'idle': {
-        // Living Mascot: Breathing frequency modulates from 1.2Hz (chill/cool) up to 3.8Hz (heavy CPU load)
-        const breatheFreq = 1.2 + this.currentCpuLoad * 2.6;
-        const breatheAmp = 0.012 + this.currentCpuLoad * 0.018;
-        const breathe = Math.sin(t * breatheFreq);
+        // Rock-steady calm & peaceful idle: very slow, gentle natural breathing
+        const breathe = Math.sin(t * 1.0);
+        const breatheAmp = 0.005;
 
         scale.y *= 1 + breathe * breatheAmp;
-        scale.x *= 1 - breathe * (breatheAmp * 0.6);
-        scale.z *= 1 - breathe * (breatheAmp * 0.6);
+        scale.x *= 1 - breathe * (breatheAmp * 0.4);
+        scale.z *= 1 - breathe * (breatheAmp * 0.4);
 
-        // High CPU load panting / working hard reaction (> 65% CPU)
-        if (this.currentCpuLoad > 0.65) {
-          const effortHop = Math.abs(Math.sin(t * breatheFreq)) * (this.currentCpuLoad - 0.65) * 0.05;
-          pos.y += effortHop;
-          rot.x = -0.08 + Math.sin(t * 2.2) * 0.02; // focused forward tilt
-        } else {
-          // Cool & relaxed idle head sway
-          rot.x = -0.04 + Math.sin(t * 1.2) * 0.012;
-          rot.z = Math.sin(t * 0.9) * 0.02;
-        }
-
-        // Memory pressure alert subtle tremble (> 90% RAM)
-        if (this.memPressure > 0.90) {
-          pos.x += Math.sin(t * 28.0) * 0.008;
-        }
+        // Very slow, calm, peaceful head posture (no jitter, no tremble!)
+        rot.x = -0.03 + Math.sin(t * 0.7) * 0.005;
+        rot.z = Math.sin(t * 0.5) * 0.006;
         break;
       }
 
