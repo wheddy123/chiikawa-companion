@@ -1,6 +1,6 @@
 {
   "name": "chiikawa-companion",
-  "version": "1.0.9",
+  "version": "1.1.0",
   "description": "3D Desktop Mascot for Coding Agents",
   "main": "dist/main/index.js",
   "scripts": {

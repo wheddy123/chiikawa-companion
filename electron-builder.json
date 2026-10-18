@@ -21,6 +21,7 @@
     }
   ],
   "mac": {
+    "icon": "assets/icon.png",
     "target": [
       {
         "target": "dmg",
@@ -33,6 +34,7 @@
     "hardenedRuntime": false
   },
   "win": {
+    "icon": "assets/icon.png",
     "target": [
       {
         "target": "nsis",
