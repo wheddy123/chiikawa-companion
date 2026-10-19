@@ -49,6 +49,15 @@ export interface MascotConfig {
   windowHeight: number;
   soundEnabled: boolean;
   macNotificationPosition: 'top-center' | 'bottom-right';
+  waterIntervalMin?: number;
+  sleepTargetTime?: string;
+  mediaEnabled?: boolean;
+}
+
+export interface MediaState {
+  isPlaying: boolean;
+  title: string;
+  artist: string;
 }
 
 export interface SystemTelemetry {

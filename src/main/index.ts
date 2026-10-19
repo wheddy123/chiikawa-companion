@@ -6,7 +6,9 @@ import { TrayManager } from './tray';
 import { WindowsPlatformHandler } from './platform/win';
 import { MacPlatformHandler } from './platform/mac';
 import { TelemetryManager } from './telemetry';
-import type { NotifyPayload } from '../types';
+import { HealthScheduler } from './scheduler';
+import { MediaManager } from './media';
+import type { NotifyPayload, UserChoice } from '../types';
 
 // Enforce single instance lock
 const gotTheLock = app.requestSingleInstanceLock();
@@ -21,6 +23,8 @@ let windowManager: WindowManager;
 let notifyServer: NotifyServer;
 let telemetryManager: TelemetryManager;
 let trayManager: TrayManager;
+let healthScheduler: HealthScheduler;
+let mediaManager: MediaManager;
 let winHandler: WindowsPlatformHandler | undefined;
 let macHandler: MacPlatformHandler | undefined;
 
@@ -66,6 +70,37 @@ async function bootstrap() {
   });
   telemetryManager.start(2000);
 
+  // Initialize Health Scheduler
+  healthScheduler = new HealthScheduler(configManager, {
+    sendNotification: (payload: NotifyPayload) => {
+      if (!win.isDestroyed()) {
+        win.webContents.send('mascot:notify', payload);
+      }
+      if (macHandler) {
+        macHandler.handleNotification(payload);
+      }
+    },
+    playSound: (clip: string) => {
+      if (!win.isDestroyed()) {
+        win.webContents.send('mascot:play-sound', clip);
+      }
+    },
+  });
+  healthScheduler.start();
+
+  // Initialize Native Media Manager (Now Playing stream & controls)
+  mediaManager = new MediaManager({
+    onRaycastVisible: () => {
+      if (macHandler) {
+        macHandler.repositionToBottom();
+      }
+    },
+    getBrowserWindow: () => win,
+  });
+  if (config.mediaEnabled !== false) {
+    mediaManager.start();
+  }
+
   // Initialize and start HTTP Notify Server
   notifyServer = new NotifyServer(config.port, config.token, {
     onNotify: (payload: NotifyPayload) => {
@@ -75,6 +110,9 @@ async function bootstrap() {
       if (macHandler) {
         macHandler.handleNotification(payload);
       }
+    },
+    onChoice: (choice: UserChoice) => {
+      healthScheduler?.handleChoice(choice);
     },
     onToggleRaycast: () => {
       if (macHandler) {
@@ -122,6 +160,12 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', async () => {
+  if (healthScheduler) {
+    healthScheduler.stop();
+  }
+  if (mediaManager) {
+    mediaManager.destroy();
+  }
   if (notifyServer) {
     await notifyServer.stop();
   }

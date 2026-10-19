@@ -49,6 +49,11 @@ export class MascotScene {
   // Animation mixer if GLTF has embedded animations
   private mixer: THREE.AnimationMixer | null = null;
 
+  // 3D Headphones Group
+  private headphonesGroup: THREE.Group | null = null;
+  private headphonesVisible: boolean = false;
+  private headphonesScale: number = 0.0;
+
   // Band-aid mesh for mute state
   private bandaidMesh: THREE.Mesh | null = null;
 
@@ -240,6 +245,14 @@ export class MascotScene {
             this.bones.head.attach(this.bandaidMesh);
           }
 
+          // Build and attach 3D Headphones matching reference image
+          this.headphonesGroup = this.buildHeadphones();
+          if (this.bones.head) {
+            this.bones.head.add(this.headphonesGroup);
+          } else {
+            gltf.scene.add(this.headphonesGroup);
+          }
+
           this.scene.add(this.modelRoot);
 
           // Configure animator with base transform
@@ -304,6 +317,19 @@ export class MascotScene {
 
     // Apply articulated bone transforms
     this.applyBoneTransforms();
+
+    // Animate 3D headphones pop-in / pop-out
+    if (this.headphonesGroup) {
+      const targetScale = this.headphonesVisible ? 1.0 : 0.0;
+      const dt = Math.min(0.1, delta);
+      this.headphonesScale += (targetScale - this.headphonesScale) * (1 - Math.exp(-14 * dt));
+      if (this.headphonesScale < 0.005) {
+        this.headphonesGroup.visible = false;
+      } else {
+        this.headphonesGroup.visible = true;
+        this.headphonesGroup.scale.set(this.headphonesScale, this.headphonesScale, this.headphonesScale);
+      }
+    }
 
     this.renderer.render(this.scene, this.camera);
   };
@@ -549,6 +575,100 @@ export class MascotScene {
       return Math.hypot(clientX - (r.left + r.width / 2), clientY - (r.top + r.height * 0.48)) < 55;
     }
     return Math.hypot(clientX - headScreen[0], clientY - headScreen[1]) < 62;
+  }
+
+  public setHeadphonesVisible(visible: boolean): void {
+    this.headphonesVisible = visible;
+  }
+
+  public getHeadphonesVisible(): boolean {
+    return this.headphonesVisible;
+  }
+
+  public getHeadphonesGroup(): THREE.Group | null {
+    return this.headphonesGroup;
+  }
+
+  public buildHeadphones(): THREE.Group {
+    const group = new THREE.Group();
+    group.name = 'Headphones';
+
+    // Soft vinyl/clay materials matching reference image
+    const blueMat = new THREE.MeshStandardMaterial({
+      color: 0x4a90e2,
+      roughness: 0.35,
+      metalness: 0.08,
+    });
+
+    const yellowMat = new THREE.MeshStandardMaterial({
+      color: 0xf5a623,
+      roughness: 0.30,
+      metalness: 0.06,
+    });
+
+    const cushionMat = new THREE.MeshStandardMaterial({
+      color: 0x1e1e1e,
+      roughness: 0.70,
+      metalness: 0.05,
+    });
+
+    // 1. Headband Arch (Curved tube spanning over top of head)
+    // Arch radius 0.96, tube 0.095, arc Math.PI
+    const archRadius = 0.96;
+    const bandGeo = new THREE.TorusGeometry(archRadius, 0.095, 20, 64, Math.PI);
+    const headband = new THREE.Mesh(bandGeo, blueMat);
+    headband.name = 'Headband';
+    headband.position.set(0, -0.20, 0);
+    group.add(headband);
+
+    // 2. Ear Cup Builder (Blue housing, yellow outer button, black inner cushion)
+    const buildEarCup = (side: 'left' | 'right') => {
+      const cup = new THREE.Group();
+      cup.name = `EarCup_${side}`;
+      const sign = side === 'left' ? -1 : 1;
+
+      // Blue outer cylindrical housing
+      const housingGeo = new THREE.CylinderGeometry(0.28, 0.28, 0.12, 32);
+      const housing = new THREE.Mesh(housingGeo, blueMat);
+      housing.rotation.z = Math.PI / 2;
+      housing.position.x = sign * 0.02;
+      cup.add(housing);
+
+      // Yellow outer cap dome (spherical dome button protruding on the outside)
+      const capGeo = new THREE.SphereGeometry(0.22, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.5);
+      const cap = new THREE.Mesh(capGeo, yellowMat);
+      cap.rotation.z = sign * (-Math.PI / 2);
+      cap.position.x = sign * 0.08;
+      cup.add(cap);
+
+      // Black inner donut cushion (soft ear pad facing Chiikawa's face)
+      const cushionGeo = new THREE.TorusGeometry(0.18, 0.09, 20, 32);
+      const cushion = new THREE.Mesh(cushionGeo, cushionMat);
+      cushion.rotation.y = Math.PI / 2;
+      cushion.position.x = sign * -0.05;
+      cup.add(cushion);
+
+      // Inner cushion center backplate
+      const backGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.05, 32);
+      const back = new THREE.Mesh(backGeo, cushionMat);
+      back.rotation.z = Math.PI / 2;
+      back.position.x = sign * -0.04;
+      cup.add(back);
+
+      cup.position.set(sign * archRadius, -0.20, 0);
+      return cup;
+    };
+
+    group.add(buildEarCup('left'));
+    group.add(buildEarCup('right'));
+
+    // Position headphones atop head bone (resting comfortably over ears)
+    group.position.set(0, 1.22, 0.90);
+    group.rotation.set(0.12, 0, 0);
+    group.scale.set(0.001, 0.001, 0.001);
+    group.visible = false;
+
+    return group;
   }
 
   private onResize = (): void => {

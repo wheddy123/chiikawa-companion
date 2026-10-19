@@ -4,7 +4,7 @@ import { SpeechBubbleManager } from './bubble';
 import { SoundManager } from './audio';
 import { Gesture } from './gesture';
 import type { ElectronAPI } from '../preload';
-import type { CursorPosition, WindowBounds, NotifyPayload, NotifyOption, UserChoice, SystemTelemetry } from '../types';
+import type { CursorPosition, WindowBounds, NotifyPayload, NotifyOption, UserChoice, SystemTelemetry, MediaState } from '../types';
 
 declare global {
   interface Window {
@@ -108,10 +108,24 @@ async function init() {
         localY <= rect.bottom + 14;
     }
 
+    // Check if cursor is over active media widget
+    const mediaEl = document.getElementById('media-widget');
+    let hitMedia = false;
+    if (mediaEl && !mediaEl.classList.contains('hidden')) {
+      const rect = mediaEl.getBoundingClientRect();
+      const localX = cursor.x - winBounds.x;
+      const localY = cursor.y - winBounds.y;
+      hitMedia =
+        localX >= rect.left - 4 &&
+        localX <= rect.right + 4 &&
+        localY >= rect.top - 4 &&
+        localY <= rect.bottom + 4;
+    }
+
     // Check if cursor hits 3D mascot mesh
     const hitMesh = scene.hitTest(cursor.x, cursor.y, winBounds);
 
-    const isHit = hitBubble || hitMesh;
+    const isHit = hitBubble || hitMedia || hitMesh;
 
     if (isHit !== isMouseHovering) {
       isMouseHovering = isHit;
@@ -339,6 +353,45 @@ async function init() {
       animator.setTelemetry(telemetry);
     });
 
+    // Media UI & IPC listeners
+    const mediaWidget = document.getElementById('media-widget');
+    const mediaTitle = document.getElementById('media-title');
+    const mediaArtist = document.getElementById('media-artist');
+    const mediaBtnPlay = document.getElementById('media-btn-play');
+    const mediaBtnPrev = document.getElementById('media-btn-prev');
+    const mediaBtnNext = document.getElementById('media-btn-next');
+
+    if (window.electronAPI.onMediaState) {
+      window.electronAPI.onMediaState((state: MediaState) => {
+        if (mediaWidget && mediaTitle && mediaArtist && mediaBtnPlay) {
+          if (state.title || state.isPlaying) {
+            mediaWidget.classList.remove('hidden');
+            mediaTitle.textContent = state.title || 'Đang phát nhạc';
+            mediaArtist.textContent = state.artist || '';
+            mediaBtnPlay.textContent = state.isPlaying ? '⏸' : '▶';
+          } else {
+            mediaWidget.classList.add('hidden');
+          }
+        }
+        scene.setHeadphonesVisible(state.isPlaying);
+      });
+    }
+
+    mediaBtnPlay?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      window.electronAPI?.sendMediaCommand('play_pause');
+    });
+
+    mediaBtnPrev?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      window.electronAPI?.sendMediaCommand('prev');
+    });
+
+    mediaBtnNext?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      window.electronAPI?.sendMediaCommand('next');
+    });
+
     // Notify main that renderer is ready
     window.electronAPI.rendererReady();
 
@@ -385,6 +438,9 @@ async function init() {
               worldPos: bandaidWorldPos,
               screenPx: bandaidScreenPx,
             },
+            headphones: {
+              visible: scene.getHeadphonesVisible(),
+            },
             mouthAnchor: (scene as any).getMouthAnchor?.() || null,
             headScreenPx: scene.getHeadScreenPosition(),
             isSitting: animator.getIsSitting(),
@@ -394,6 +450,8 @@ async function init() {
         projectToScreen: (v3: [number, number, number]) => scene.projectPointToScreen(v3),
         setBandaidVisible: (vis: boolean) => scene.setBandaidVisible(vis),
         placeBandaidAtScreen: (px: number, py: number) => scene.placeBandaidAtScreen(px, py),
+        setHeadphonesVisible: (vis: boolean) => scene.setHeadphonesVisible(vis),
+        getHeadphonesVisible: () => scene.getHeadphonesVisible(),
         hitTestHead: (x: number, y: number) => scene.hitTestHead(x, y),
         forceSit: (sit: boolean = true) => animator.forceSit(sit),
         feedPetting: (speed: number, movementX: number) => animator.feedPetting(speed, movementX),

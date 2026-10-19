@@ -13,6 +13,9 @@ const DEFAULT_CONFIG: MascotConfig = {
   windowHeight: 420,
   soundEnabled: true,
   macNotificationPosition: 'top-center',
+  waterIntervalMin: 45,
+  sleepTargetTime: '22:30',
+  mediaEnabled: true,
 };
 
 export class ConfigManager {

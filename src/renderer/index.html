@@ -9,6 +9,20 @@
 <body>
   <div id="app">
     <div id="bubble-container" class="bubble-container"></div>
+    <div id="media-widget" class="media-widget hidden">
+      <div class="media-track-container">
+        <span class="media-music-icon">🎵</span>
+        <div class="media-marquee">
+          <span class="media-title" id="media-title">Chưa phát nhạc</span>
+          <span class="media-artist" id="media-artist"></span>
+        </div>
+      </div>
+      <div class="media-btn-group">
+        <button type="button" class="media-ctrl-btn" id="media-btn-prev" title="Bài trước">⏮</button>
+        <button type="button" class="media-ctrl-btn media-ctrl-play" id="media-btn-play" title="Phát / Dừng">▶</button>
+        <button type="button" class="media-ctrl-btn" id="media-btn-next" title="Bài tiếp">⏭</button>
+      </div>
+    </div>
     <div id="canvas-container" class="canvas-container"></div>
   </div>
   <script type="module" src="./index.ts"></script>

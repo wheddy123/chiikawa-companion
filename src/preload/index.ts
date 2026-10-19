@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { NotifyPayload, CursorPosition, WindowBounds, SystemTelemetry } from '../types';
+import type { NotifyPayload, CursorPosition, WindowBounds, SystemTelemetry, MediaState } from '../types';
 
 export interface ElectronAPI {
   onNotify: (callback: (payload: NotifyPayload) => void) => () => void;
@@ -8,6 +8,8 @@ export interface ElectronAPI {
   onVisibility: (callback: (visible: boolean) => void) => () => void;
   onSoundEnabled: (callback: (enabled: boolean) => void) => () => void;
   onPlaySound: (callback: (clipOrEvent: string) => void) => () => void;
+  onMediaState: (callback: (state: MediaState) => void) => () => void;
+  sendMediaCommand: (cmd: 'play_pause' | 'next' | 'prev') => void;
   toggleSound: () => void;
   setSoundEnabled: (enabled: boolean) => void;
   setIgnoreMouseEvents: (ignore: boolean, forward?: boolean) => void;
@@ -55,6 +57,14 @@ const api: ElectronAPI = {
     const handler = (_event: Electron.IpcRendererEvent, clipOrEvent: string) => callback(clipOrEvent);
     ipcRenderer.on('mascot:play-sound', handler);
     return () => ipcRenderer.removeListener('mascot:play-sound', handler);
+  },
+  onMediaState: (callback) => {
+    const handler = (_event: Electron.IpcRendererEvent, state: MediaState) => callback(state);
+    ipcRenderer.on('mascot:media-state', handler);
+    return () => ipcRenderer.removeListener('mascot:media-state', handler);
+  },
+  sendMediaCommand: (cmd) => {
+    ipcRenderer.send('media:command', cmd);
   },
   toggleSound: () => {
     ipcRenderer.send('mascot:toggle-sound');

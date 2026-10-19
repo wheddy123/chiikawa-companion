@@ -2,7 +2,10 @@
 set -euo pipefail
 
 NAME="${1:-snap}"
-CONFIG="$HOME/Library/Application Support/chiikawa-companion/chiikawa-config.json"
+CONFIG="${CAI_CONFIG:-$HOME/Library/Application Support/chiikawa-ai/chiikawa-config.json}"
+if [ ! -f "$CONFIG" ]; then
+  CONFIG="$HOME/Library/Application Support/chiikawa-companion/chiikawa-config.json"
+fi
 if [ ! -f "$CONFIG" ]; then
   echo "Error: Config file not found at $CONFIG" >&2
   exit 1

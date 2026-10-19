@@ -5,6 +5,7 @@ import { DEBUG, snapshot, getState, click, setBandaid, calibrate } from './debug
 
 export interface ServerCallbacks {
   onNotify: (payload: NotifyPayload) => void;
+  onChoice?: (choice: UserChoice) => void;
   onToggleRaycast?: () => void;
   onPlaySound?: (clipOrEvent: string) => void;
   onToggleSound?: () => void;
@@ -116,6 +117,9 @@ export class NotifyServer {
         try {
           const choice: UserChoice = JSON.parse(body);
           this.pendingChoices.push(choice);
+          if (this.callbacks.onChoice) {
+            this.callbacks.onChoice(choice);
+          }
 
           // Resolve any waiting long-poll requests (from POST /ask)
           const matchedWaiterIndex = this.choiceWaiters.findIndex(
