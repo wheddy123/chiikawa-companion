@@ -86,6 +86,13 @@ async function bootstrap() {
         win.webContents.send('mascot:play-sound', clipOrEvent);
       }
     },
+    onToggleSound: () => {
+      configManager.updateConfig({ soundEnabled: !configManager.config.soundEnabled });
+      if (!win.isDestroyed()) {
+        win.webContents.send('mascot:sound-enabled', configManager.config.soundEnabled);
+      }
+      trayManager?.updateContextMenu();
+    },
     getTelemetry: () => telemetryManager.getLatest(),
     getBrowserWindow: () => win,
   });

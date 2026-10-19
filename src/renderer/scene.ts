@@ -4,6 +4,22 @@ import { ProceduralAnimator } from './animation';
 import { MOUTH_ANCHOR } from './mouth-anchor';
 import type { CursorPosition, WindowBounds } from '../types';
 
+export interface MascotBones {
+  head: THREE.Bone | null;
+  body: THREE.Bone | null;
+  earL: THREE.Bone | null;
+  earR: THREE.Bone | null;
+  handL: THREE.Bone | null;
+  handR: THREE.Bone | null;
+  footL: THREE.Bone | null;
+  footR: THREE.Bone | null;
+}
+
+interface BoneRestTransform {
+  quaternion: THREE.Quaternion;
+  position: THREE.Vector3;
+}
+
 export class MascotScene {
   private container: HTMLElement;
   private scene: THREE.Scene;
@@ -12,6 +28,19 @@ export class MascotScene {
   private animator: ProceduralAnimator;
   private modelRoot: THREE.Group | null = null;
   private meshes: THREE.Mesh[] = [];
+
+  // Articulated bone hierarchy
+  private bones: MascotBones = {
+    head: null,
+    body: null,
+    earL: null,
+    earR: null,
+    handL: null,
+    handR: null,
+    footL: null,
+    footR: null,
+  };
+  private boneRestTransforms: Partial<Record<keyof MascotBones, BoneRestTransform>> = {};
 
   // Raycaster for hit testing
   private raycaster = new THREE.Raycaster();
@@ -94,7 +123,20 @@ export class MascotScene {
           this.modelRoot = new THREE.Group();
           this.modelRoot.name = 'MascotRoot';
 
-          // Extract meshes for hit testing and configure materials
+          // Reset bone references
+          this.bones = {
+            head: null,
+            body: null,
+            earL: null,
+            earR: null,
+            handL: null,
+            handR: null,
+            footL: null,
+            footR: null,
+          };
+          this.boneRestTransforms = {};
+
+          // Extract meshes for hit testing and identify articulated bones
           gltf.scene.traverse((child) => {
             if ((child as THREE.Mesh).isMesh) {
               const mesh = child as THREE.Mesh;
@@ -111,7 +153,33 @@ export class MascotScene {
                 });
               }
             }
+
+            if ((child as THREE.Bone).isBone) {
+              const bone = child as THREE.Bone;
+              if (bone.name === 'Head') this.bones.head = bone;
+              else if (bone.name === 'Body') this.bones.body = bone;
+              else if (bone.name === 'Ear_L') this.bones.earL = bone;
+              else if (bone.name === 'Ear_R') this.bones.earR = bone;
+              else if (bone.name === 'Hand_L') this.bones.handL = bone;
+              else if (bone.name === 'Hand_R') this.bones.handR = bone;
+              else if (bone.name === 'Foot_L') this.bones.footL = bone;
+              else if (bone.name === 'Foot_R') this.bones.footR = bone;
+            }
           });
+
+          const hasBones = Boolean(this.bones.head && this.bones.body);
+          this.animator.setHasBones(hasBones);
+
+          // Store initial rest transforms for clean relative offsets
+          for (const key of Object.keys(this.bones) as (keyof MascotBones)[]) {
+            const bone = this.bones[key];
+            if (bone) {
+              this.boneRestTransforms[key] = {
+                quaternion: bone.quaternion.clone(),
+                position: bone.position.clone(),
+              };
+            }
+          }
 
           // Check if GLTF has embedded animations
           if (gltf.animations && gltf.animations.length > 0) {
@@ -138,7 +206,7 @@ export class MascotScene {
           this.modelRoot.scale.set(scale, scale, scale);
 
           // Position mascot resting cleanly on bottom ledge with feet fully visible
-          const initialPos = new THREE.Vector3(0, -1.30, 0);
+          const initialPos = new THREE.Vector3(0, -1.02, 0);
           this.modelRoot.position.copy(initialPos);
 
           this.modelRoot.add(gltf.scene);
@@ -165,6 +233,12 @@ export class MascotScene {
           this.bandaidMesh.quaternion.set(MOUTH_ANCHOR.qLocal[0], MOUTH_ANCHOR.qLocal[1], MOUTH_ANCHOR.qLocal[2], MOUTH_ANCHOR.qLocal[3]);
           this.bandaidMesh.visible = false;
           gltf.scene.add(this.bandaidMesh);
+
+          // If Head bone is present, attach bandaid to Head bone so it rotates organically with the head!
+          if (this.bones.head) {
+            this.bandaidMesh.updateMatrixWorld(true);
+            this.bones.head.attach(this.bandaidMesh);
+          }
 
           this.scene.add(this.modelRoot);
 
@@ -228,7 +302,45 @@ export class MascotScene {
       this.modelRoot.scale.copy(this.animator.currentScale);
     }
 
+    // Apply articulated bone transforms
+    this.applyBoneTransforms();
+
     this.renderer.render(this.scene, this.camera);
+  };
+
+  private applyBoneTransforms(): void {
+    if (!this.bones.head) return;
+
+    const rot = this.animator.boneRotations;
+    const pos = this.animator.bonePositions;
+
+    const applyBone = (
+      key: keyof MascotBones,
+      euler: THREE.Euler,
+      posOffset?: THREE.Vector3
+    ) => {
+      const bone = this.bones[key];
+      const rest = this.boneRestTransforms[key];
+      if (!bone || !rest) return;
+
+      const qOffset = new THREE.Quaternion().setFromEuler(euler);
+      bone.quaternion.copy(rest.quaternion).multiply(qOffset);
+
+      if (posOffset) {
+        bone.position.copy(rest.position).add(posOffset);
+      } else {
+        bone.position.copy(rest.position);
+      }
+    };
+
+    applyBone('head', rot.head);
+    applyBone('body', rot.body, pos.body);
+    applyBone('earL', rot.earL);
+    applyBone('earR', rot.earR);
+    applyBone('handL', rot.handL);
+    applyBone('handR', rot.handR);
+    applyBone('footL', rot.footL);
+    applyBone('footR', rot.footR);
   };
 
   public hitTest(screenX: number, screenY: number, winBounds: WindowBounds): boolean {
@@ -420,6 +532,23 @@ export class MascotScene {
     const [anchorX, anchorY] = this.projectBandaidToScreen();
     const dist = Math.hypot(localX - anchorX, localY - anchorY);
     return dist <= 32;
+  }
+
+  public getHeadScreenPosition(): [number, number] | null {
+    if (!this.bones.head) return null;
+    const v = new THREE.Vector3();
+    this.bones.head.getWorldPosition(v);
+    v.y += 0.26; // Center of forehead
+    return this.projectPointToScreen(v);
+  }
+
+  public hitTestHead(clientX: number, clientY: number): boolean {
+    const headScreen = this.getHeadScreenPosition();
+    if (!headScreen) {
+      const r = this.renderer.domElement.getBoundingClientRect();
+      return Math.hypot(clientX - (r.left + r.width / 2), clientY - (r.top + r.height * 0.48)) < 55;
+    }
+    return Math.hypot(clientX - headScreen[0], clientY - headScreen[1]) < 62;
   }
 
   private onResize = (): void => {

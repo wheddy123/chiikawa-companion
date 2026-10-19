@@ -12,6 +12,7 @@ export interface NotifyPayload {
   state: MascotState;
   message?: string;
   source?: string;
+  agent?: 'oc' | 'agy' | string;
   duration_ms?: number;
   sticky?: boolean;
   sound?: string;

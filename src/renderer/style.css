@@ -161,6 +161,45 @@ html, body {
   }
 }
 
+/* Mini Agent Badge popping out top-left of the bubble */
+.bubble-agent-badge {
+  position: absolute;
+  top: -10px;
+  left: -5px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 1.5px 8px;
+  border-radius: 9999px;
+  color: #ffffff;
+  z-index: 10;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+  line-height: 1.25;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+/* Agent Color Themes: OpenCode (Orange) & Antigravity (Blue) */
+.bubble.theme-oc {
+  border-color: #ff8c00 !important;
+  box-shadow: 0 4px 18px rgba(255, 140, 0, 0.28), 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+}
+
+.bubble.theme-oc .bubble-agent-badge {
+  background: #ff8c00;
+  border: 1px solid #ffa500;
+}
+
+.bubble.theme-agy {
+  border-color: #1e90ff !important;
+  box-shadow: 0 4px 18px rgba(30, 144, 255, 0.28), 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+}
+
+.bubble.theme-agy .bubble-agent-badge {
+  background: #1e90ff;
+  border: 1px solid #60a5fa;
+}
+
 .bubble-text {
   font-size: 12.5px;
   line-height: 1.42;

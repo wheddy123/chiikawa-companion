@@ -89,6 +89,18 @@ export class SpeechBubbleManager {
     const bubble = document.createElement('div');
     bubble.className = `bubble state-${item.state}${hasOptions ? ' has-options' : ''}${isInteractive ? ' is-interactive' : ''}`;
 
+    // Mini Agent Badge & Color Theme (OpenCode: oc, Antigravity: agy)
+    if (item.agent) {
+      const agentKey = String(item.agent).toLowerCase();
+      const badgeText = agentKey === 'oc' ? 'OC' : agentKey === 'agy' ? 'AGY' : item.agent.toUpperCase();
+      bubble.classList.add(`theme-${agentKey}`);
+
+      const agentBadge = document.createElement('div');
+      agentBadge.className = 'bubble-agent-badge';
+      agentBadge.textContent = badgeText;
+      bubble.appendChild(agentBadge);
+    }
+
     const header = document.createElement('div');
     header.className = 'bubble-header';
 

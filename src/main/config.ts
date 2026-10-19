@@ -17,7 +17,7 @@ const DEFAULT_CONFIG: MascotConfig = {
 
 export class ConfigManager {
   private configPath: string;
-  private config: MascotConfig;
+  public config: MascotConfig;
 
   constructor() {
     const userDataPath = app.getPath('userData');
@@ -25,6 +25,18 @@ export class ConfigManager {
       fs.mkdirSync(userDataPath, { recursive: true });
     }
     this.configPath = path.join(userDataPath, CONFIG_FILE);
+
+    // Backward compatibility: copy legacy token/config if fresh install under new name
+    if (!fs.existsSync(this.configPath)) {
+      try {
+        const appData = app.getPath('appData');
+        const legacyPath = path.join(appData, 'chiikawa-companion', CONFIG_FILE);
+        if (fs.existsSync(legacyPath)) {
+          fs.copyFileSync(legacyPath, this.configPath);
+        }
+      } catch {}
+    }
+
     this.config = this.loadConfig();
   }
 
@@ -77,6 +89,12 @@ export class ConfigManager {
   private saveConfig(): void {
     try {
       fs.writeFileSync(this.configPath, JSON.stringify(this.config, null, 2), 'utf-8');
+      // Keep legacy path in sync for external scripts and MCP tools
+      const appData = app.getPath('appData');
+      const legacyDir = path.join(appData, 'chiikawa-companion');
+      if (fs.existsSync(legacyDir)) {
+        fs.writeFileSync(path.join(legacyDir, CONFIG_FILE), JSON.stringify(this.config, null, 2), 'utf-8');
+      }
     } catch (err) {
       console.error('Failed to save config:', err);
     }

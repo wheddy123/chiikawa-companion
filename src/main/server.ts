@@ -7,6 +7,7 @@ export interface ServerCallbacks {
   onNotify: (payload: NotifyPayload) => void;
   onToggleRaycast?: () => void;
   onPlaySound?: (clipOrEvent: string) => void;
+  onToggleSound?: () => void;
   getTelemetry?: () => SystemTelemetry | null;
   getBrowserWindow?: () => BrowserWindow | null;
 }
@@ -245,6 +246,22 @@ export class NotifyServer {
         return;
       }
 
+      // POST /debug/eval { code: string }
+      if (method === 'POST' && (url === '/debug/eval' || url === '/debug/eval/')) {
+        let body = '';
+        req.on('data', (c) => (body += c));
+        req.on('end', async () => {
+          try {
+            const data = JSON.parse(body || '{}');
+            const result = await win.webContents.executeJavaScript(data.code);
+            this.sendJsonResponse(res, 200, { ok: true, result });
+          } catch (e: any) {
+            this.sendJsonResponse(res, 400, { error: e.message || 'Execution error' });
+          }
+        });
+        return;
+      }
+
       this.sendJsonResponse(res, 404, { error: 'Unknown debug route' });
       return;
     }
@@ -331,6 +348,17 @@ export class NotifyServer {
       if (this.callbacks.onToggleRaycast) {
         this.callbacks.onToggleRaycast();
         this.sendJsonResponse(res, 200, { ok: true, message: 'Raycast visibility toggled' });
+      } else {
+        this.sendJsonResponse(res, 404, { error: 'Endpoint not supported on this platform' });
+      }
+      return;
+    }
+
+    // Route: POST /toggle-sound
+    if (method === 'POST' && (url === '/toggle-sound' || url === '/toggle-sound/')) {
+      if (this.callbacks.onToggleSound) {
+        this.callbacks.onToggleSound();
+        this.sendJsonResponse(res, 200, { ok: true, message: 'Sound toggled' });
       } else {
         this.sendJsonResponse(res, 404, { error: 'Endpoint not supported on this platform' });
       }

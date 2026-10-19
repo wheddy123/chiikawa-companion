@@ -61,11 +61,17 @@ async function init() {
     }
   );
 
-  // Load original pristine Chiikawa 3D model
+  // Load rigged Chiikawa 3D model with graceful fallback
   try {
-    await scene.loadModel('./chiikawa.glb');
+    await scene.loadModel('./chiikawa_rigged.glb');
+    console.log('[Renderer] Successfully loaded chiikawa_rigged.glb');
   } catch (err) {
-    console.error('Failed to load chiikawa.glb:', err);
+    console.warn('[Renderer] Failed to load chiikawa_rigged.glb, attempting fallback to chiikawa.glb:', err);
+    try {
+      await scene.loadModel('./chiikawa.glb');
+    } catch (fallbackErr) {
+      console.error('[Renderer] Failed to load fallback chiikawa.glb:', fallbackErr);
+    }
   }
 
   // Start rendering
@@ -183,6 +189,8 @@ async function init() {
   };
 
   window.addEventListener('mousedown', (e: MouseEvent) => {
+    animator.notifyInteraction();
+
     // Check if clicked on speech bubble
     const bubbleEl = bubbleManager.getActiveBubbleElement();
     if (bubbleEl && bubbleEl.contains(e.target as Node)) {
@@ -199,11 +207,47 @@ async function init() {
     }
   });
 
+  // Head petting / nựng nựng stroking interaction
+  let lastPetX = 0;
+  let lastPetY = 0;
+  let lastPetTime = 0;
+  let lastPetSoundTime = 0;
+
+  const checkPetting = (clientX: number, clientY: number) => {
+    if (isDragging) return;
+    const now = performance.now();
+    const dt = now - lastPetTime;
+    if (dt < 16) return; // rate-limit stroke updates to ~60fps
+
+    const dx = clientX - lastPetX;
+    const dy = clientY - lastPetY;
+    lastPetX = clientX;
+    lastPetY = clientY;
+    lastPetTime = now;
+
+    // Movement must be organic (not teleporting or stationary)
+    const dist = Math.hypot(dx, dy);
+    if (dist < 1.0 || dist > 65) return;
+
+    if (scene.hitTestHead(clientX, clientY)) {
+      animator.feedPetting(dist, dx);
+    }
+  };
+
+  animator.onPettingTrigger = () => {
+    const now = Date.now();
+    if (now - lastPetSoundTime > 4000 && soundManager.isEnabled()) {
+      lastPetSoundTime = now;
+      soundManager.playRandomReaction();
+    }
+  };
+
   window.addEventListener('mousemove', (e: MouseEvent) => {
     if (e.buttons === 0) {
       if (isDragging) {
         endDrag();
       }
+      checkPetting(e.clientX, e.clientY);
       return;
     }
     gesture.pointerMove(e.screenX, e.screenY);
@@ -222,6 +266,7 @@ async function init() {
   // IPC listeners from preload
   if (window.electronAPI) {
     window.electronAPI.onNotify((payload: NotifyPayload) => {
+      animator.notifyInteraction();
       bubbleManager.enqueue(payload);
     });
 
@@ -235,6 +280,9 @@ async function init() {
 
       if (!isDragging) {
         updateHitTest(pos, winBounds);
+        const clientX = pos.x - winBounds.x;
+        const clientY = pos.y - winBounds.y;
+        checkPetting(clientX, clientY);
       } else {
         // Feed OS-level cursor position into drag movement as well
         handleDragMove(pos.x, pos.y);
@@ -338,14 +386,21 @@ async function init() {
               screenPx: bandaidScreenPx,
             },
             mouthAnchor: (scene as any).getMouthAnchor?.() || null,
+            headScreenPx: scene.getHeadScreenPosition(),
+            isSitting: animator.getIsSitting(),
+            pettingIntensity: animator.getPettingIntensity(),
           };
         },
         projectToScreen: (v3: [number, number, number]) => scene.projectPointToScreen(v3),
         setBandaidVisible: (vis: boolean) => scene.setBandaidVisible(vis),
         placeBandaidAtScreen: (px: number, py: number) => scene.placeBandaidAtScreen(px, py),
+        hitTestHead: (x: number, y: number) => scene.hitTestHead(x, y),
+        forceSit: (sit: boolean = true) => animator.forceSit(sit),
+        feedPetting: (speed: number, movementX: number) => animator.feedPetting(speed, movementX),
         scene,
         animator,
         bubbleManager,
+        soundManager,
       };
     }
   }

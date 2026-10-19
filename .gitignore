@@ -5,4 +5,6 @@ release/
 .DS_Store
 chiikawa-config.json
 src/main/platform/raycast-watcher
-
+*.dmg
+*.exe
+.agent/

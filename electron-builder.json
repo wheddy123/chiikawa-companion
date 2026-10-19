@@ -1,6 +1,6 @@
 {
-  "appId": "com.chiikawa.companion",
-  "productName": "Chiikawa Companion",
+  "appId": "com.chiikawa.ai",
+  "productName": "Chiikawa AI",
   "directories": {
     "output": "release"
   },
@@ -32,6 +32,28 @@
     "identity": null,
     "gatekeeperAssess": false,
     "hardenedRuntime": false
+  },
+  "dmg": {
+    "title": "${productName} ${version}",
+    "contents": [
+      {
+        "x": 140,
+        "y": 190,
+        "type": "file"
+      },
+      {
+        "x": 400,
+        "y": 190,
+        "type": "link",
+        "path": "/Applications"
+      }
+    ],
+    "window": {
+      "width": 540,
+      "height": 380
+    },
+    "background": "assets/dmg-background.png",
+    "iconSize": 128
   },
   "win": {
     "icon": "assets/icon.ico",

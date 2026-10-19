@@ -29,17 +29,26 @@ export class TrayManager {
   private init(): void {
     const icon = this.createTrayIcon();
     this.tray = new Tray(icon);
-    this.tray.setToolTip('Chiikawa Companion');
+    this.tray.setToolTip('Chiikawa AI (c.ai)');
 
     this.updateContextMenu();
   }
 
   private createTrayIcon(): Electron.NativeImage {
-    // Generate a simple circular mascot icon or load from assets
+    // Check for template icon first (standard for macOS menu bar)
+    const templatePath = path.join(app.getAppPath(), 'assets', 'trayTemplate.png');
+    if (fs.existsSync(templatePath)) {
+      const img = nativeImage.createFromPath(templatePath);
+      img.setTemplateImage(true);
+      return img;
+    }
+
     const iconPath = path.join(app.getAppPath(), 'assets', 'tray.png');
     if (fs.existsSync(iconPath)) {
       const img = nativeImage.createFromPath(iconPath);
-      img.setTemplateImage(true);
+      if (process.platform === 'darwin') {
+        img.setTemplateImage(true);
+      }
       return img;
     }
 

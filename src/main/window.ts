@@ -135,13 +135,7 @@ export class WindowManager {
     });
 
     ipcMain.on('mascot:toggle-sound', () => {
-      this.config.soundEnabled = !this.config.soundEnabled;
-      if (this.onSoundToggled) {
-        this.onSoundToggled(this.config.soundEnabled);
-      }
-      if (this.window && !this.window.isDestroyed()) {
-        this.window.webContents.send('mascot:sound-enabled', this.config.soundEnabled);
-      }
+      this.toggleSound();
     });
 
     ipcMain.on('mascot:set-sound-enabled', (_event, enabled: boolean) => {
@@ -185,6 +179,27 @@ export class WindowManager {
     if (this.cursorPollTimer) {
       clearInterval(this.cursorPollTimer);
       this.cursorPollTimer = null;
+    }
+  }
+
+  public toggleSound(): boolean {
+    this.config.soundEnabled = !this.config.soundEnabled;
+    if (this.onSoundToggled) {
+      this.onSoundToggled(this.config.soundEnabled);
+    }
+    if (this.window && !this.window.isDestroyed()) {
+      this.window.webContents.send('mascot:sound-enabled', this.config.soundEnabled);
+    }
+    return this.config.soundEnabled;
+  }
+
+  public setSoundEnabled(enabled: boolean): void {
+    this.config.soundEnabled = enabled;
+    if (this.onSoundToggled) {
+      this.onSoundToggled(enabled);
+    }
+    if (this.window && !this.window.isDestroyed()) {
+      this.window.webContents.send('mascot:sound-enabled', enabled);
     }
   }
 
