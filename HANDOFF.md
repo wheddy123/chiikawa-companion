@@ -1,295 +1,283 @@
-# 🐾 Chiikawa Companion — Comprehensive Project Handoff Context
+# 🐾 Chiikawa AI (c.ai) — Comprehensive Project Handoff Context
 
-> **Version**: `v1.0.9` (`chiikawa.AI v1`)  
+> **Version**: `v1.4.0` — **"Health & Harmony Update"** (Lofi Vibes, Health Scheduler & 3D Headphones)  
 > **Repository**: [https://github.com/wheddy123/chiikawa-companion](https://github.com/wheddy123/chiikawa-companion)  
-> **Last Updated**: 2026-10-17  
+> **Last Updated**: 2026-10-19  
 > **Target OS**: macOS (Apple Silicon / Intel) & Windows 10/11  
-> **Status**: Production release `chiikawa.AI v1` with calibrated mouth anchor bandaid, double-click mute toggle with instant audio cut, dynamic auto/click reading bubbles, calm idle stillness, and HITL decision buttons.
+> **Status**: Production release `v1.4.0` with Articulated Rigging (8 bones), Health Scheduler (Water reminder + 22:30 Sleep alert with strict 5m snooze loop), macOS Native Media Engine (`MRMediaRemote` Now Playing & Controls), Procedural 3D Headphones with reactive pop-in/pop-out scale animation, Mini-Player translucent glassmorphism widget, double-click mute toggle, calibrated mouth anchor bandaid, speech bubble system, and comprehensive verification suite (`npm run verify`).
 
 ---
 
 ## 1. 📖 Project Overview & Purpose
 
-**Chiikawa Companion** is an ultra-lightweight, high-framerate 3D desktop companion designed to sit on the user's screen (above the macOS Dock or Windows Taskbar) and act as a playful, expressive visual frontend for **AI Coding Agents** (such as Antigravity, OpenCode, Claude Code, Cursor, and Roo Code).
+**Chiikawa AI (c.ai)** is an ultra-lightweight, high-framerate 3D desktop companion designed to sit on the user's screen (above the macOS Dock or Windows Taskbar) and act as a playful, expressive visual frontend and lifestyle assistant for **AI Coding Agents** (such as Antigravity, OpenCode, Claude Code, Cursor, and Roo Code) as well as the Operator's daily workflow.
 
 ### Key Value Propositions
 1. **Human-in-the-Loop (HITL) 1-Click Decisions**:
    Instead of cumbersome terminal dialogs or intrusive full-screen popups, agents prompt the user directly through Chiikawa's floating speech bubble with 1-click decision buttons (e.g. `Approve`, `Review`, `Reject`).
-2. **Delightful 3D Presence**:
-   A pristine 3D model of Chiikawa rendered at 60 FPS in Three.js with soft vinyl studio lighting, eyes tracking the mouse cursor, and expressive procedural animations (breathing, curious head tilt, joyful bouncing, trembling alert, sad slouch).
-3. **Soft Squishy "Mochi" Drag Physics**:
-   Chiikawa can be picked up and dragged anywhere on the screen with gentle volume-preserving stretch, inertia tilt, relaxing dangling sways, and jello spring landings.
-4. **Authentic Voice Lines**:
-   16 curated community soundboard clips (Usagi, Chiikawa, Hachiware, Momonga) playing at a pleasant, non-startling volume (`0.20`).
-5. **Universal Agent Integration**:
+2. **Health & Wellness Scheduler (New in v1.4.0)**:
+   Proactive reminders for the Operator: periodic hydration alerts with 1-click acknowledgment (`Đã uống 💧`) and evening sleep alerts (`22:30`) with an infinite 5-minute snooze loop (`Cố thêm 5 phút ⏰`) until the user decides to sleep (`Đi ngủ luôn 🛌`).
+3. **OS Media Integration & 3D Headphones (New in v1.4.0)**:
+   Real-time macOS Now Playing tracking via lightweight private native Swift helper (`MRMediaRemote`), displaying track metadata in a floating translucent Mini-Player with playback controls (`[⏮] [⏯] [⏭]`). Procedural Three.js 3D headphones dynamically pop onto Chiikawa's head when music is playing and pop off when paused.
+4. **Articulated 8-Bone Skeletal Presence**:
+   A rigged 3D model of Chiikawa rendered at 60 FPS in Three.js with soft vinyl studio lighting, eyes tracking the mouse cursor, and expressive procedural animations (breathing, shy glance, ear twitches, sit-down plushie pose, head petting reaction, dangling drag flail, and jello rebound).
+5. **Authentic Voice Lines**:
+   16 curated community soundboard clips (Usagi, Chiikawa, Hachiware, Momonga) playing at a pleasant, non-startling volume (`0.20`), with instant audio cut on mute.
+6. **Universal Agent Integration**:
    Built-in Model Context Protocol (MCP) server (`scripts/chiikawa-mcp.js`) and local REST API (`127.0.0.1:7788`) with Bearer token authentication.
+
+> [!NOTE]
+> **Về việc định danh phiên bản v1.4.0 (thay vì v2.0)**:  
+> Bản cập nhật này tập trung hoàn thiện trải nghiệm desktop thường nhật (tiện ích sức khỏe, âm nhạc, visual headphones và độ bền bỉ kiểm thử). Phiên bản mang tính bước ngoặt **v2.0** sẽ được dành cho đột phá kiến trúc tiếp theo (như Mascot Autonomous Brain, Local LLM Co-Pilot, hoặc Proactive Long-Term Memory).
 
 ---
 
-## 2. 🏗 Architecture & Tech Stack
+## 2. 📅 Release History & Changelog
+
+### 🎧 v1.4.0 — "Health & Harmony Update" (2026-10-19)
+- **Health Scheduler (`src/main/scheduler.ts`)**:
+  - `Water Reminder`: Định kỳ (mặc định 45 phút) gửi bong bóng thoại tương tác `Uống nước đi sếp! 💧` kèm nút `Đã uống 💧`. Bấm nút sẽ reset chu kỳ đếm giờ.
+  - `Sleep Reminder`: Kiểm tra target time (mặc định `22:30`), kích hoạt bong bóng cảnh báo `Đến giờ đi ngủ rồi sếp ơi! 🌙` kèm 2 lựa chọn:
+    - `Cố thêm 5 phút ⏰`: Hoãn báo thức đúng **300.000 ms (5 phút)** bằng `setTimeout`, sau đó lặp lại thông báo cho đến khi người dùng đi ngủ.
+    - `Đi ngủ luôn 🛌`: Tắt thông báo ngủ trong ngày (reset lại vào trưa hôm sau) và gửi lời chúc ngủ ngon `Chúc sếp ngủ thật ngon nha! ✨🐾`.
+- **OS Media Integration (`src/main/platform/desktop-helper.swift`, `src/main/media.ts`)**:
+  - Thay thế observer cũ bằng `desktop-helper.swift` tích hợp `MRMediaRemote` của macOS (thông qua `dlopen` PrivateFrameworks).
+  - Không phụ thuộc vào npm package bên ngoài nặng nề (`active-win`). Tự động phát hiện khi Brave, Chrome, Safari, Music, Spotify phát nhạc.
+  - Hỗ trợ lệnh điều khiển playback (`play_pause`, `next`, `prev`) gửi qua stdin của helper và fallback qua phím media hệ thống.
+- **Tai nghe 3D Headphones (`src/renderer/scene.ts`)**:
+  - Tạo mô hình 3D thủ công bằng Three.js geometries theo đúng reference art: Vòm xanh dương (`#4A90E2`), đệm tai donut đen (`#1E1E1E`), nút bán cầu vàng (`#F5A623`).
+  - Gắn trực tiếp vào xương đầu (`bones.head`) nên tai nghe xoay/lắc tự nhiên theo từng biểu cảm của Chiikawa mà không sợ lỗi chia ma trận (zero-determinant division by zero fix).
+  - Hiệu ứng Scale Animation: Tự động pop-in trong 0.5s khi nhạc phát (`isPlaying: true`) và pop-out mượt mà khi dừng nhạc.
+- **Mini-Player Glassmorphism UI (`src/renderer/index.html`, `style.css`)**:
+  - Widget nổi mờ dạng viên thuốc bo tròn trên đầu mascot: Icon nốt nhạc nhấp nháy, tiêu đề bài hát & nghệ sĩ chạy chữ, 3 nút bấm tương tác `[⏮] [⏯] [⏭]`.
+- **Verification Gate & Hardening**:
+  - Tích hợp `npm run typecheck` (`tsc --noEmit`).
+  - Script kiểm tra chất lượng 1 lệnh `npm run verify` (`scripts/verify_all.sh`): TypeScript, Build, Gesture State Machine, Secrets Guard, E2E Mute Sequence.
+
+### 🦴 v1.3.0 — "Rigging & Articulated Mascot" (2026-10-18)
+- Gắn xương armature 8 bones cho Chiikawa (`Chiikawa_Skeleton`): `head`, `body`, `earL`, `earR`, `handL`, `handR`, `footL`, `footR`.
+- Tư thế ngồi plushie hướng 2 chân về phía trước sau 15s không hoạt động.
+- Shy glance liếc trộm chuột (cooldown 22s), ngoáy tai ngẫu nhiên, vung tay chân khi bị nhấc bổng (`drag flail`), và phản ứng nựng đầu (`head petting`).
+- Đổi tên sản phẩm sang **Chiikawa AI (c.ai)**, thiết kế lại icon Menu Bar trong suốt và background DMG.
+
+### 🩹 v1.0.9 — "Foundational Desktop Release" (2026-10-17)
+- Cố định miếng băng dán miệng (`bandaidMesh`) vào đúng tọa độ miệng (`MOUTH_ANCHOR`).
+- Cơ chế double-click bật/tắt mute với khả năng ngắt âm thanh tức thì (`SoundManager.stopAll`).
+- Hệ thống bong bóng thoại đa năng: Thanh đếm lùi thời gian, badge tác vụ `AGENT` / `OC` / `!?`, hiệu ứng shimmer khi đang suy nghĩ (`thinking`).
+- Tích hợp Living Mascot Telemetry (`src/main/telemetry.ts`) và Antigravity Safety Gate Hook.
+
+---
+
+## 3. 🏗 Architecture & Tech Stack
 
 ```mermaid
 flowchart TD
-    subgraph AI_Agents["AI Agent Ecosystem"]
-        AG[Antigravity / Gemini CLI]
+    subgraph AI_Agents["AI Agent & OS Ecosystem"]
+        AG[Antigravity CLI / Gemini]
         OC[OpenCode / Claude Code]
-        EXT[External Scripts / Webhooks]
+        OSM[macOS Now Playing / MediaRemote]
     end
 
     subgraph Interface_Layer["Interface Layer"]
         MCP["MCP Server (scripts/chiikawa-mcp.js)"]
         HTTP["REST API Server (127.0.0.1:7788)"]
+        SWIFT["Native Swift Helper (desktop-helper)"]
     end
 
     subgraph Electron_Main["Electron Main Process (src/main)"]
         WM[WindowManager]
         CFG[ConfigManager]
+        SCHED[HealthScheduler]
+        MEDIA[MediaManager]
         NS[NotifyServer]
         TM[TrayManager]
-        PH[Mac / Win Platform Handlers]
     end
 
     subgraph Electron_Renderer["Electron Renderer (src/renderer)"]
-        SC[MascotScene - Three.js WebGL]
-        PA[ProceduralAnimator - Physics & Poses]
-        BM[SpeechBubbleManager - 1-Click Buttons]
+        SC[MascotScene - Three.js WebGL & 3D Headphones]
+        PA[ProceduralAnimator - Bone Transforms & Poses]
+        BM[SpeechBubbleManager - HITL & Reminders]
+        MW[MiniPlayerWidget - Track Info & Controls]
         SM[SoundManager - 16 Voice Clips]
     end
 
     AG -->|Stdio MCP Tools| MCP
     OC -->|Stdio MCP Tools| MCP
-    EXT -->|HTTP POST| HTTP
-    MCP -->|HTTP REST + Bearer Token| HTTP
+    MCP -->|HTTP REST + Token| HTTP
+    OSM <-->|Mach Port Notifications| SWIFT
 
-    HTTP --> NS
-    NS -->|IPC: mascot:notify / ask| WM
+    SWIFT -->|JSON Lines via Stdout| MEDIA
+    MEDIA -->|IPC: mascot:media-state| WM
+    WM -->|IPC| MW
+    WM -->|IPC| SC
+
+    SCHED -->|Send Water / Sleep Notifications| NS
+    NS -->|IPC: mascot:notify| WM
     WM -->|IPC| BM
-    WM -->|Cursor Polling 60Hz| PA
-    BM -->|Trigger Reaction / Sound| PA
-    BM -->|Feedback Sound| SM
-    BM -->|HTTP POST /action/choice| HTTP
+    BM -->|User Decision / SNOOZE_5M| NS
+    NS -->|Callback: onChoice| SCHED
+
+    MW -->|Media Button Clicks| WM
+    WM -->|IPC: mascot:media-command| MEDIA
+    MEDIA -->|Stdin Commands| SWIFT
+
     PA --> SC
 ```
 
 ### Technology Breakdown
 - **Runtime**: Electron `^34.3.0`, Node.js `20+`
-- **Frontend / 3D**: Three.js `^0.174.0`, HTML5 WebGL Canvas, CSS3 Backdrop Blur
-- **Bundler / Build**: Vite `^6.2.0` (Renderer), esbuild `^0.25.0` (Main & Preload), Swift Native (`raycast-watcher`)
-- **Type Safety**: TypeScript `^5.8.2` (strict mode across entire codebase)
+- **Frontend / 3D**: Three.js `^0.174.0`, HTML5 WebGL Canvas, CSS3 Glassmorphism Backdrop Filter
+- **Bundler / Build**: Vite `^6.2.0` (Renderer), esbuild `^0.25.0` (Main & Preload), Swift Native (`swiftc -O`)
+- **Native OS Bridge**: macOS `MRMediaRemote.framework` (private), AppKit `NSWorkspace`
+- **Type Safety**: TypeScript `^5.8.2` (strict mode with 0 type errors across whole project)
 
 ---
 
-## 3. 🎯 Key Modules & Directory Structure
+## 4. 🎯 Key Modules & Directory Structure
 
 ```
 chiikaưa/
 ├── assets/
-│   ├── chiikawa.glb            # Pristine original 3D model (251 KB)
+│   ├── chiikawa.glb            # Pristine original 3D model
+│   ├── chiikawa_rigged.glb     # 8-bone articulated skinned mesh
+│   ├── bandaid.png             # Mute band-aid texture
 │   ├── sounds/                 # 16 authentic MP3 voice clips
-│   │   ├── usagi_una.mp3
-│   │   ├── usagi_yaha.mp3
-│   │   ├── nani_nani.mp3
-│   │   └── ...
 │   └── voice_lines.json        # Sound catalog metadata
 ├── scripts/
-│   ├── build-native.js         # Compiles Swift raycast-watcher on macOS
-│   ├── chiikawa-mcp.js         # Production MCP Server (Stdio protocol)
-│   ├── chiikawa-notify.sh      # Bash CLI helper for notifications & questions
-│   └── chiikawa-notify.ps1     # PowerShell CLI helper for Windows
+│   ├── build-native.js         # Compiles Swift desktop-helper binary
+│   ├── cai-api.sh              # Zero-leak Bearer token API curl helper
+│   ├── snap.sh                 # Headless screenshot evidence generator
+│   ├── test_gesture.mjs        # Unit tests for double-click state machine
+│   ├── test_double_click_sequence.py # Live E2E alternating mute tests
+│   ├── guard_secrets.sh        # Pre-commit secrets scanner
+│   ├── verify_all.sh           # Main CI/Verification gate script
+│   └── chiikawa-mcp.js         # Production MCP Server (Stdio)
 ├── src/
-│   ├── types.ts                # Shared TypeScript schemas & interfaces
+│   ├── types/
+│   │   └── index.ts            # Shared TypeScript schemas & interfaces
 │   ├── main/
 │   │   ├── index.ts            # Application bootstrap & lifecycle
-│   │   ├── config.ts           # JSON config manager with crypto token
-│   │   ├── window.ts           # BrowserWindow creation, IPC, cursor polling (60Hz)
+│   │   ├── config.ts           # JSON config manager (water, sleep, media, token)
+│   │   ├── scheduler.ts        # HealthScheduler (Water interval & Sleep snooze loop)
+│   │   ├── media.ts            # MediaManager (Now Playing stream & IPC routing)
+│   │   ├── window.ts           # BrowserWindow creation, hit testing, cursor polling (60Hz)
 │   │   ├── server.ts           # HTTP REST API server with rate limiting
-│   │   ├── tray.ts             # OS System Tray / Menu Bar icon & context menu
+│   │   ├── tray.ts             # OS System Tray icon & context menu
 │   │   └── platform/
-│   │       ├── mac.ts          # macOS positioning, dock hiding, screen saver level
-│   │       ├── win.ts          # Windows taskbar alignment
-│   │       └── raycast-watcher.swift # Native Swift window observer
+│   │       ├── desktop-helper.swift # Native Swift MediaRemote + Raycast observer
+│   │       ├── mac.ts          # macOS positioning, dock hiding
+│   │       └── win.ts          # Windows taskbar alignment
 │   ├── preload/
-│   │   └── index.ts            # Context-isolated secure IPC bridge (ElectronAPI)
+│   │   └── index.ts            # Context-isolated secure IPC bridge (electronAPI)
 │   └── renderer/
-│       ├── index.html          # Canvas & bubble container DOM layout
-│       ├── style.css           # Glassmorphism styling, bubble pop animations
-│       ├── index.ts            # Main renderer controller & full-screen drag loop
-│       ├── scene.ts            # Three.js camera, lights, model loading, raycasting
-│       ├── animation.ts        # Procedural poses, mochi squish, inertia damping
-│       ├── bubble.ts           # SpeechBubbleManager with 1-click option buttons
+│       ├── index.html          # Canvas, speech bubble & mini-player widget DOM
+│       ├── style.css           # Glassmorphism styling & animations
+│       ├── index.ts            # Renderer controller, dragging & hit-testing
+│       ├── scene.ts            # Three.js scene, procedural 3D headphones, bandaid
+│       ├── animation.ts        # Bone poses, physics, squish, petting reaction
+│       ├── bubble.ts           # SpeechBubbleManager with interactive buttons
 │       └── audio.ts            # SoundManager with cache & volume regulation (0.20)
 └── dist/                       # Production build outputs
 ```
 
 ---
 
-## 4. 🛠 Critical Bug Resolutions & Engineering Lessons
-
-### 1. The 3D Model Deformation & Disappearing Feet (`v1.0.4` -> `v1.0.5`)
-- **Problem**: When attempting to create a seated pose, vertices were algorithmically rotated around the waist in a script (`chiikawa_sitting.glb`). Because the raw mesh has no skeletal armature, this crushed the legs, truncated the feet, and left Chiikawa looking like a giant distorted head stump.
-- **Root Cause & Fix**:
-  - Reverted permanently to the pristine original `assets/chiikawa.glb`.
-  - Removed all deformed files.
-  - In [scene.ts](file:///Users/wheddy/Desktop/chiikaưa/src/renderer/scene.ts#L36-L42), angled the camera slightly downwards (`camera.position(0, 0.20, 5.0)`, `lookAt(0, -0.30, 0)`), scaled `targetHeight = 1.68`, and anchored at `initialPos.y = -1.30`.
-  - **Result**: Chiikawa's two tiny feet rest cleanly above the screen border (~28px padding), fully visible with no clipping.
-
-### 2. Chaotic Drag Jitter (`v1.0.4` -> `v1.0.5`)
-- **Problem**: Dragging Chiikawa caused violent high-frequency vibration and spastic stretching.
-- **Root Cause & Fix**:
-  - Code had frantic sine waves (`sin(t * 28.0) * 0.12`, `abs(sin(t * 22)) * 0.07`).
-  - Replaced with soft, volume-preserving mochi dough physics in [animation.ts](file:///Users/wheddy/Desktop/chiikaưa/src/renderer/animation.ts#L148-L180):
-    - Stretch capped at +3% to +11% based on speed (`1 / sqrt(stretch)` for volume conservation).
-    - Inertia tilt filtered with exponential dampening (`exp(-12t)`).
-    - Relaxed pendulum sway (~6Hz) while airborne.
-    - Soft jello spring rebound (`exp(-9t)`) that settles within 0.4 seconds upon landing.
-
-### 3. Drag Freezing / Mouse Capture Drop (`v1.0.5` -> `v1.0.6`)
-- **Problem**: Dragging Chiikawa across the desktop caused it to abruptly freeze after moving only 50–80 pixels.
-- **Root Cause & Fix**:
-  - Every frame, `updateHitTest` was checking if the cursor was over the 3D mesh. When the user dragged quickly, the cursor briefly stepped 1px off the mesh, triggering `setIgnoreMouseEvents(true)`. The window immediately dropped all mouse events to the desktop beneath, killing the drag!
-  - In [index.ts](file:///Users/wheddy/Desktop/chiikaưa/src/renderer/index.ts#L85-L95), locked mouse capture during drag: `if (isDragging) return;` inside `updateHitTest`.
-
-### 4. macOS Menu Bar Ceiling Clamp (`v1.0.6` -> `v1.0.7`)
-- **Problem**: Chiikawa could not be dragged into the top half of the screen; it was blocked ~195px below the top of the monitor.
-- **Root Cause & Fix**:
-  - The window is 320px tall (top 120px is transparent speech bubble space, bottom 200px is Chiikawa).
-  - macOS AppKit clamps standard `NSWindow` frames so the top edge cannot exceed `y >= 25` (the macOS Menu Bar). Because the invisible bubble hit the menu bar ceiling, Chiikawa at the bottom stopped at `25 + 170 = 195px`!
-  - In [window.ts](file:///Users/wheddy/Desktop/chiikaưa/src/main/window.ts#L27-L32), added `enableLargerThanScreen: true` to `BrowserWindow`.
-  - In `window:move-to`, switched from `setPosition` to `setBounds`, permitting negative coordinates.
-  - In [index.ts](file:///Users/wheddy/Desktop/chiikaưa/src/renderer/index.ts#L168-L175), switched to exact client-relative grab offsets: `dragGrabOffsetX = e.clientX`, `dragGrabOffsetY = e.clientY`.
-  - **Result**: Chiikawa can now be dragged to the very top edge of the screen, over the menu bar, into any monitor, without boundaries.
-
----
-
 ## 5. 🔌 Integration APIs & Protocols
 
 ### Local HTTP Endpoints (`http://127.0.0.1:7788`)
-
 All requests require the `Authorization: Bearer <token>` header (found in `chiikawa-config.json`).
 
 | Endpoint | Method | Payload / Arguments | Description |
 |---|---|---|---|
-| `/health` | `GET` | None | Returns `{ "ok": true, "platform": "darwin" }`. |
-| `/notify` | `POST` | `{ message, state, sound, duration_ms }` | Pops an informational speech bubble with audio. |
-| `/ask` | `POST` | `{ question, options: [{id, label, style, sound}], timeout_ms }` | Displays 1-click decision buttons; blocks until human clicks or times out. |
-| `/telemetry` | `GET` | None (Bearer token) | Returns real-time `{ cpuUsagePercent, memUsagePercent, loadAvg, cores }`. |
-| `/action/choice`| `POST` | `{ id, label, questionId, timestamp }` | Internal/external webhook to submit a decision. |
-| `/choice` | `GET` | `?questionId=...` | Polls for user decision if not using blocking `/ask`. |
-| `/play-sound` | `POST` | `{ clip: "usagi_yaha" }` | Directly plays any authentic voice clip. |
+| `/health` | `GET` | None | Trả về `{ "ok": true, "platform": "darwin" }` (không cần token). |
+| `/notify` | `POST` | `{ message, state, sound, duration_ms, options, sticky }` | Hiển thị bong bóng thoại kèm nút bấm tương tác. |
+| `/ask` | `POST` | `{ question, options: [{id, label, style, sound}], timeout_ms }` | Hiển thị câu hỏi 1-click; block chờ người dùng chọn. |
+| `/action/choice`| `POST` | `{ id, label, questionId }` | Gửi lựa chọn người dùng (vd: `water_drank`, `sleep_now`, `snooze_5m`). |
+| `/choice` | `GET` | `?questionId=...` | Lấy lựa chọn tiếp theo đang chờ trong hàng đợi. |
+| `/telemetry` | `GET` | None | Trả về thông số hệ thống CPU, RAM, loadAvg. |
+| `/play-sound` | `POST` | `{ clip: "usagi_yaha" }` | Phát trực tiếp âm thanh từ catalog. |
+| `/debug/state` | `GET` | None | Lấy toàn bộ trạng thái render, tọa độ mascot, camera, bandaid, headphones. |
+| `/debug/eval` | `POST` | `{ code: "..." }` | Thực thi mã JavaScript trong renderer để kiểm thử (chỉ bật khi `CHIIKAWA_DEBUG=1`). |
 
-#### Example: Asking a Human Decision from Bash
-```bash
-TOKEN=$(node -e 'console.log(JSON.parse(require("fs").readFileSync(require("os").homedir() + "/Library/Application Support/chiikawa-companion/chiikawa-config.json")).token)')
+---
 
-curl -s -X POST http://127.0.0.1:7788/ask \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "question": "Deploy release v1.0.8 to production?",
-    "state": "thinking",
-    "sound": "nani_nani",
-    "options": [
-      { "id": "yes", "label": "Deploy Now 🚀", "style": "primary", "sound": "task_complete" },
-      { "id": "no", "label": "Cancel ❌", "style": "danger", "sound": "attention_surprise" }
-    ]
-  }'
-```
+## 6. ⚙️ Configuration Schema
 
-### 5.2 🫀 Living Mascot Telemetry (Feature A)
-Chiikawa phản ánh nhịp tim và trạng thái phần cứng của máy tính trong thời gian thực:
-- **Sampling Engine** (`src/main/telemetry.ts`): Lấy mẫu `os.cpus()`, `os.freemem()`, `os.loadavg()` định kỳ 2000ms với overhead cực nhẹ (< 0.05ms).
-- **IPC Broadcast**: Main process gửi kênh `mascot:telemetry` tới Renderer.
-- **Rhythmic Modulation** (`src/renderer/animation.ts`):
-  - **Tần số thở (Breathing Frequency)**: Chuyển mượt từ `1.2 Hz` (khi CPU nhàn rỗi < 10%) lên đến `3.8 Hz` (khi CPU tải nặng > 80%).
-  - **Biên độ nhấp nhô (Amplitude)**: Tăng từ `0.025` lên `0.065`, mascot nhấp nhô rõ rệt như đang thở dốc khi máy tính đang build code hoặc chạy mô hình AI.
-  - **Nhịp thở hổn hển & run rẩy**: Khi CPU > 75%, Chiikawa kích hoạt bước nhảy thở dốc nhẹ (`panting hop`); khi RAM > 90%, cơ thể mascot run rẩy nhẹ cảnh báo áp lực bộ nhớ.
-
-### 5.3 🛡️ Native PreToolUse Safety Gate (Feature B)
-Tích hợp trực tiếp với Antigravity CLI Lifecycle Hooks (`.agents/hooks.json` và `.agents/scripts/safety-gate.js`):
-- **Cơ chế hoạt động**: Khi Antigravity CLI chuẩn bị thực thi lệnh qua `run_command`, hook script chặn trước ở tầng runtime.
-- **Kiểm duyệt lệnh phá hoại**: Quét regex các mẫu lệnh nguy hiểm như `rm -rf`, `git reset --hard`, `git push --force`, `mkfs`, `dd of=/dev`, `fdisk`, `chmod 777 /`,...
-- **Interactive Authorization**:
-  - Tự động gọi `POST http://127.0.0.1:7788/ask` sang Chiikawa.
-  - Chiikawa trên màn hình lập tức phát âm thanh `nani_nani`, rung lắc cảnh báo và hiển thị câu hỏi kèm 2 nút: `Cho phép (Authorize) 🚀` và `Chặn lại (Block) 🛡️`.
-  - Nếu Operator bấm cho phép -> Trả về `{"decision": "allow"}` cho Antigravity tiếp tục.
-  - Nếu Operator bấm từ chối hoặc hết 30s -> Trả về `{"decision": "deny"}` chặn đứng lệnh ngay lập tức!
-  - Nếu Chiikawa Mascot offline -> Tự động fallback sang cơ chế `{"decision": "force_ask"}` native của Antigravity CLI.
-
-### 5.4 ⌨️ Typewriter Streaming for Speech Bubble (Feature C Blueprint)
-Kiến trúc luồng phản hồi văn bản thời gian thực (real-time token streaming) kết hợp hoạt ảnh đồng bộ:
-- **Khái niệm**: Thay vì hiển thị toàn bộ đoạn văn bản dài một cách đột ngột khi agent hoàn thành câu trả lời, speech bubble hiển thị chữ chạy từng ký tự/từng từ mượt mà (typewriter effect) kèm con trỏ nhấp nháy (`▌`).
-- **Head Bob & Lip Sync Procedural**: Khi text đang được stream vào bubble, Chiikawa thực hiện các nhịp gật đầu nhẹ (`head tilt` và `lip sync hop`) ở tần số 8–10Hz theo tốc độ ký tự, tạo cảm giác Chiikawa thực sự đang "nói" từng lời với Operator.
-- **Thanh năng lượng tiến trình (Agent Progress Gauge)**: Dải màu mỏng hiển thị phần trăm tiến độ tác vụ dưới chân bong bóng thoại.
-
-### 5.5 Model Context Protocol (MCP) Configuration
-In Antigravity (`~/.gemini/antigravity-cli/config.json`) or Claude Desktop (`claude_desktop_config.json`):
+Vị trí lưu file cấu hình:
+- **macOS**: `~/Library/Application Support/chiikawa-ai/chiikawa-config.json` (fallback: `chiikawa-companion`)
+- **Windows**: `%APPDATA%\chiikawa-ai\chiikawa-config.json`
 
 ```json
 {
-  "mcpServers": {
-    "chiikawa": {
-      "command": "node",
-      "args": ["/Users/wheddy/Desktop/chiikaưa/scripts/chiikawa-mcp.js"]
-    }
-  }
+  "port": 7788,
+  "token": "cai_sec_...",
+  "soundEnabled": true,
+  "windowWidth": 280,
+  "windowHeight": 200,
+  "waterIntervalMin": 45,
+  "sleepTargetTime": "22:30",
+  "mediaEnabled": true,
+  "macNotificationPosition": "bottom-right"
 }
 ```
 
-Exposed MCP Tools:
-- `chiikawa_notify`: Send a notification bubble.
-- `chiikawa_ask`: Prompt the user with 1-click decision options and wait for their choice.
-- `chiikawa_play_sound`: Play a specific Chiikawa character sound.
-- `chiikawa_get_user_choice`: Retrieve the latest user choice.
-
 ---
 
-## 6. 🎵 Voice Lines Catalog (`volume: 0.20`)
+## 7. 🧪 Testing & Verification Guide
 
-| ID | Character | Label | Best Used For |
-|---|---|---|---|
-| `usagi_una` | Usagi | Una | Agent startup, task received |
-| `usagi_yaha` | Usagi | Yaha / Yahaaaa | Task complete, success, approved |
-| `usagi_una_na_yaha` | Usagi | U-una-na-ya-ha | Heavy computation, busy |
-| `usagi_huh` | Usagi | Huh | Clarification needed, unexpected diff |
-| `usagi_haaa` | Usagi | Haaaa?! | Warning, exception, rejected |
-| `usagi_wula` | Usagi | Wula! | Notification ping |
-| `hachiware_oi` | Hachiware | Oi | User attention requested |
-| `momonga_silly` | Momonga | Silly noise | Idle random hop |
-| `momonga_crying` | Momonga | Crying | Error state |
-| `nani_nani` | Chiikawa | Nani nani? | Question prompt, options presented |
-| `una_yaha_curry` | Usagi | Una yaha - curry | Easter egg click reaction |
-| `usagi_iyaha` | Usagi | IYAHA | High-energy click reaction |
+Dự án áp dụng nguyên tắc **"Three-Strike Rule"** và **Verification Gate**:
+Không coi một thay đổi là hoàn tất nếu chỉ "biên dịch được". Mọi thay đổi phải đi kèm file bằng chứng snapshot và log định lượng.
 
----
-
-## 7. 🚀 Running & Developing
-
-### Commands
+Chạy toàn bộ cổng kiểm thử chỉ với một lệnh:
 ```bash
-# Install dependencies
-npm install
-
-# Full build (Main, Preload, Renderer, Native Swift)
-npm run build
-
-# Run app in foreground
-npx electron .
-
-# Run in background (Daemon mode)
-nohup npx electron . > /dev/null 2>&1 &
+npm run verify
 ```
 
-### Configuration Location
-- **macOS**: `~/Library/Application Support/chiikawa-companion/chiikawa-config.json`
-- **Windows**: `%APPDATA%\chiikawa-companion\chiikawa-config.json`
+Quy trình bao gồm 5 bước nghiêm ngặt:
+1. **TypeScript Typecheck**: `tsc --noEmit -p tsconfig.json` (Đảm bảo 0 lỗi kiểu dữ liệu).
+2. **Build Pipeline**: Biên dịch đồng thời Main, Preload, Renderer (Vite) và Swift native helper.
+3. **Gesture Unit Tests**: Kiểm tra máy trạng thái Double-click, Single-click, Drag, Triple-click.
+4. **Secrets Guard**: Quét toàn bộ repository ngăn chặn lộ Bearer token bí mật.
+5. **E2E Live Tests**: Thử nghiệm chuỗi 6 lần double-click bật/tắt mute luân phiên trên server thực và kiểm tra đồng bộ bandaidMesh.
 
 ---
 
-## 8. 📋 Next Steps & Future Enhancements
+## 8. 📸 Evidence Snapshots Index (`/tmp/chiikawa-evidence/`)
 
-1. **Multi-Selection Checkbox Support**:
-   For complex agent tasks requiring multiple options selected before submitting (e.g., selecting files to commit).
-2. **Adaptive Bubble Inversion**:
-   When Chiikawa is dragged near the very top of the screen (`y < 150`), invert the speech bubble downward instead of upward to prevent the bubble from clipping off the top edge.
-3. **Stand-Alone Installers**:
-   Generate signed `.dmg` for macOS (Apple Silicon + Intel universal) and `.exe` for Windows using `npm run dist`.
+| File Snapshot | Mô tả & Tính năng được chứng minh |
+|---|---|
+| `22_headphones_fresh_fit_...png` | Tai nghe 3D Headphones gắn khớp hoàn hảo trên đầu Chiikawa khi đang phát nhạc. |
+| `23_headphones_popped_out_...png` | Tai nghe thu nhỏ và ẩn mượt mà sau khi nhạc dừng phát. |
+| `24_media_player_widget_active_...png` | Mini-Player widget dạng kính mờ hiển thị tiêu đề, nghệ sĩ và các nút điều khiển. |
+| `25_sleep_alert_bubble_...png` | Bong bóng thoại cảnh báo đi ngủ lúc 22:30 với 2 nút "Đi ngủ luôn" và "Cố thêm 5 phút". |
+| `28_water_reminder_bubble_...png` | Bong bóng nhắc nhở uống nước với nút "Đã uống 💧". |
+| `07_p3_dblclick_muted_on_...png` | Miếng dán bandaid hiển thị che miệng chính xác khi chuyển sang chế độ Mute. |
+| `08_p3_dblclick_muted_off_...png` | Miếng dán biến mất khi bật lại âm thanh. |
+
+---
+
+## 9. 🚀 Running & Developing
+
+```bash
+# Cài đặt dependencies
+npm install
+
+# Kiểm tra kiểu dữ liệu
+npm run typecheck
+
+# Build toàn bộ hệ thống
+npm run build
+
+# Chạy app ở chế độ thông thường
+npm start
+
+# Chạy app ở chế độ gỡ lỗi (bật HTTP Debug API & Snapshot)
+CHIIKAWA_DEBUG=1 npx electron .
+
+# Đóng gói bộ cài đặt macOS DMG
+npm run build:mac
+```
+
+---
+
+*Handoff context hoàn chỉnh được cập nhật ngày 2026-10-19 cho phiên bản v1.4.0 — Chiikawa AI Companion.*
