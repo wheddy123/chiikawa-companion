@@ -8,3 +8,4 @@ src/main/platform/raycast-watcher
 *.dmg
 *.exe
 .agent/
+.sound_forge/
