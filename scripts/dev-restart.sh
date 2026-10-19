@@ -1,58 +1,46 @@
 #!/usr/bin/env bash
+# scripts/dev-restart.sh - Safe build & process restarter for Chiikawa AI
 set -euo pipefail
 
 WORKSPACE="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$WORKSPACE"
 
-echo "[dev-restart] Building project..."
+echo "[dev-restart] 1. Running typecheck and build..."
+npm run typecheck
 npm run build
 
-echo "[dev-restart] Stopping existing Chiikawa process..."
+echo "[dev-restart] 2. Stopping existing Chiikawa process..."
+TARGET_PID=""
 if [ -f /tmp/chiikawa.pid ]; then
-  OLD_PID="$(cat /tmp/chiikawa.pid || true)"
-  if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
-    echo "[dev-restart] Stopping PID $OLD_PID..."
-    kill "$OLD_PID" 2>/dev/null || true
-    for _ in {1..20}; do
-      kill -0 "$OLD_PID" 2>/dev/null || break
-      sleep 0.2
-    done
+  FILE_PID="$(cat /tmp/chiikawa.pid 2>/dev/null || true)"
+  if [ -n "$FILE_PID" ] && kill -0 "$FILE_PID" 2>/dev/null; then
+    TARGET_PID="$FILE_PID"
   fi
-  rm -f /tmp/chiikawa.pid
 fi
 
-# Fallback: check if port 7788 is still bound, kill ONLY that specific PID
-PID_PORT="$(lsof -tiTCP:7788 -sTCP:LISTEN 2>/dev/null || true)"
-if [ -n "$PID_PORT" ]; then
-  echo "[dev-restart] Port 7788 held by PID $PID_PORT, stopping it..."
-  kill "$PID_PORT" 2>/dev/null || true
-  for _ in {1..20}; do
-    kill -0 "$PID_PORT" 2>/dev/null || break
+# Also check port 7788 listener
+PORT_PID="$(lsof -tiTCP:7788 -sTCP:LISTEN 2>/dev/null || true)"
+if [ -n "$PORT_PID" ]; then
+  TARGET_PID="$PORT_PID"
+fi
+
+if [ -n "$TARGET_PID" ]; then
+  echo "[dev-restart] Stopping Chiikawa PID $TARGET_PID..."
+  kill "$TARGET_PID" 2>/dev/null || true
+  for _ in {1..25}; do
+    kill -0 "$TARGET_PID" 2>/dev/null || break
     sleep 0.2
   done
+  if kill -0 "$TARGET_PID" 2>/dev/null; then
+    echo "[dev-restart] PID $TARGET_PID did not exit gracefully, terminating..."
+    kill -9 "$TARGET_PID" 2>/dev/null || true
+  fi
+  rm -f /tmp/chiikawa.pid
+  echo "[dev-restart] Process stopped cleanly."
+else
+  echo "[dev-restart] No active Chiikawa process found on port 7788 or /tmp/chiikawa.pid."
 fi
 
 mkdir -p /tmp/chiikawa-evidence
 
-echo "[dev-restart] Starting Chiikawa in debug mode..."
-CHIIKAWA_DEBUG=1 nohup ./node_modules/.bin/electron . > /tmp/chiikawa-dev.log 2>&1 &
-NEW_PID=$!
-echo "$NEW_PID" > /tmp/chiikawa.pid
-echo "[dev-restart] Chiikawa launched (PID $NEW_PID)"
-
-# Wait for server to become healthy
-MAX_TRIES=20
-TRIES=0
-while [ $TRIES -lt $MAX_TRIES ]; do
-  if curl -s http://127.0.0.1:7788/health >/dev/null 2>&1; then
-    HEALTH="$(curl -s http://127.0.0.1:7788/health)"
-    echo "[dev-restart] Ready! Health: $HEALTH"
-    exit 0
-  fi
-  sleep 0.5
-  TRIES=$((TRIES + 1))
-done
-
-echo "[dev-restart] Error: Server did not respond to /health in time. Check /tmp/chiikawa-dev.log"
-tail -n 25 /tmp/chiikawa-dev.log
-exit 1
+echo "[dev-restart] Build and shutdown complete. Electron should be launched via manage_task / background task."
