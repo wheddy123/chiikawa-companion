@@ -35,13 +35,13 @@ async function init() {
       if (opt.sound) {
         soundManager.play(opt.sound);
       } else if (opt.style === 'primary') {
-        soundManager.play('task_complete'); // usagi_yaha
+        soundManager.play('ui_complete');
         animator.setState('success');
       } else if (opt.style === 'danger') {
-        soundManager.play('attention_surprise'); // usagi_haaa
+        soundManager.play('chiikawa_iya');
         animator.setState('alert');
       } else {
-        soundManager.play('quick_notification'); // usagi_yaha_short
+        soundManager.play('chiikawa_ya');
       }
 
       // 2. Post human decision back to local server / agent queue
@@ -282,6 +282,9 @@ async function init() {
     window.electronAPI.onNotify((payload: NotifyPayload) => {
       animator.notifyInteraction();
       bubbleManager.enqueue(payload);
+      if (soundManager.isEnabled()) {
+        soundManager.playUiPop();
+      }
     });
 
     window.electronAPI.onCursor((pos: CursorPosition, winBounds: WindowBounds) => {

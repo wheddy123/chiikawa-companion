@@ -508,6 +508,10 @@ canvas {
   line-height: 1.2;
 }
 
+.media-artist:empty {
+  display: none;
+}
+
 .media-btn-group {
   display: flex;
   align-items: center;

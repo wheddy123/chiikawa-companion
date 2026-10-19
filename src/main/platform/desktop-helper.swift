@@ -5,11 +5,15 @@ import Foundation
 // MARK: - Dynamic MediaRemote Bindings
 typealias MRMediaRemoteGetNowPlayingInfoFunction = @convention(c) (DispatchQueue, @escaping ([String: Any]) -> Void) -> Void
 typealias MRMediaRemoteGetNowPlayingApplicationIsPlayingFunction = @convention(c) (DispatchQueue, @escaping (Bool) -> Void) -> Void
+typealias MRMediaRemoteGetNowPlayingApplicationPlaybackStateFunction = @convention(c) (DispatchQueue, @escaping (UInt32) -> Void) -> Void
+typealias MRMediaRemoteRegisterForNowPlayingNotificationsFunction = @convention(c) (DispatchQueue) -> Void
 typealias MRMediaRemoteSendCommandFunction = @convention(c) (Int32, AnyObject?) -> Bool
 
 class MediaObserver {
     private var getInfo: MRMediaRemoteGetNowPlayingInfoFunction?
     private var getIsPlaying: MRMediaRemoteGetNowPlayingApplicationIsPlayingFunction?
+    private var getPlaybackState: MRMediaRemoteGetNowPlayingApplicationPlaybackStateFunction?
+    private var registerNotifications: MRMediaRemoteRegisterForNowPlayingNotificationsFunction?
     private var sendCommand: MRMediaRemoteSendCommandFunction?
 
     private var lastIsPlaying: Bool? = nil
@@ -26,6 +30,12 @@ class MediaObserver {
             if let pPlaying = dlsym(handle, "MRMediaRemoteGetNowPlayingApplicationIsPlaying") {
                 getIsPlaying = unsafeBitCast(pPlaying, to: MRMediaRemoteGetNowPlayingApplicationIsPlayingFunction.self)
             }
+            if let pState = dlsym(handle, "MRMediaRemoteGetNowPlayingApplicationPlaybackState") {
+                getPlaybackState = unsafeBitCast(pState, to: MRMediaRemoteGetNowPlayingApplicationPlaybackStateFunction.self)
+            }
+            if let pReg = dlsym(handle, "MRMediaRemoteRegisterForNowPlayingNotifications") {
+                registerNotifications = unsafeBitCast(pReg, to: MRMediaRemoteRegisterForNowPlayingNotificationsFunction.self)
+            }
             if let pSend = dlsym(handle, "MRMediaRemoteSendCommand") {
                 sendCommand = unsafeBitCast(pSend, to: MRMediaRemoteSendCommandFunction.self)
             }
@@ -33,12 +43,28 @@ class MediaObserver {
     }
 
     func start() {
-        guard getInfo != nil && getIsPlaying != nil else {
+        guard getInfo != nil else {
             // MediaRemote not available
             return
         }
 
-        // Poll media state every 0.8s
+        // Register for immediate system notifications
+        if let register = registerNotifications {
+            register(DispatchQueue.main)
+            let center = NotificationCenter.default
+            let noteNames = [
+                "kMRMediaRemoteNowPlayingInfoDidChangeNotification",
+                "kMRMediaRemoteNowPlayingApplicationIsPlayingDidChangeNotification",
+                "kMRMediaRemoteNowPlayingApplicationPlaybackStateDidChangeNotification"
+            ]
+            for name in noteNames {
+                center.addObserver(forName: NSNotification.Name(rawValue: name), object: nil, queue: .main) { [weak self] _ in
+                    self?.checkMediaState()
+                }
+            }
+        }
+
+        // Keep 0.8s polling as safety net
         pollTimer = Timer.scheduledTimer(withTimeInterval: 0.8, repeats: true) { [weak self] _ in
             self?.checkMediaState()
         }
@@ -46,33 +72,72 @@ class MediaObserver {
     }
 
     func checkMediaState() {
-        guard let getIsPlaying = getIsPlaying, let getInfo = getInfo else { return }
+        guard let getInfo = getInfo else { return }
 
-        getIsPlaying(DispatchQueue.main) { [weak self] isPlaying in
-            getInfo(DispatchQueue.main) { [weak self] info in
-                guard let self = self else { return }
+        getInfo(DispatchQueue.main) { [weak self] info in
+            guard let self = self else { return }
 
-                let title = (info["kMRMediaRemoteNowPlayingInfoTitle"] as? String) ?? ""
-                let artist = (info["kMRMediaRemoteNowPlayingInfoArtist"] as? String) ?? ""
+            let title = (info["kMRMediaRemoteNowPlayingInfoTitle"] as? String) ?? ""
+            let artist = (info["kMRMediaRemoteNowPlayingInfoArtist"] as? String) ?? ""
 
-                if isPlaying != self.lastIsPlaying || title != self.lastTitle || artist != self.lastArtist {
-                    self.lastIsPlaying = isPlaying
-                    self.lastTitle = title
-                    self.lastArtist = artist
+            // Determine isPlaying robustly across Music.app, Spotify, and Chromium/Brave
+            var isPlaying = false
 
-                    let out: [String: Any] = [
-                        "type": "media",
-                        "isPlaying": isPlaying,
-                        "title": title,
-                        "artist": artist
-                    ]
+            // 1. Check PlaybackRate (Chromium, Brave, Safari, Spotify set this accurately: > 0.0 when playing)
+            if let rate = (info["kMRMediaRemoteNowPlayingInfoPlaybackRate"] as? Double) ?? (info["kMRMediaRemoteNowPlayingInfoPlaybackRate"] as? NSNumber)?.doubleValue {
+                if rate > 0.0 {
+                    isPlaying = true
+                }
+            }
 
-                    if let data = try? JSONSerialization.data(withJSONObject: out, options: []),
-                       let str = String(data: data, encoding: .utf8) {
-                        print(str)
-                        fflush(stdout)
+            // 2. Cross-verify with getIsPlaying if available
+            if let getIsPlaying = self.getIsPlaying {
+                getIsPlaying(DispatchQueue.main) { [weak self] sysIsPlaying in
+                    guard let self = self else { return }
+                    var finalPlaying = isPlaying || sysIsPlaying
+
+                    // 3. Cross-verify with PlaybackState (1 = Playing, 2 = Paused, 3 = Stopped)
+                    if let getState = self.getPlaybackState {
+                        getState(DispatchQueue.main) { [weak self] state in
+                            guard let self = self else { return }
+                            if state == 1 {
+                                finalPlaying = true
+                            } else if state == 2 || state == 3 {
+                                if let rate = (info["kMRMediaRemoteNowPlayingInfoPlaybackRate"] as? Double) ?? (info["kMRMediaRemoteNowPlayingInfoPlaybackRate"] as? NSNumber)?.doubleValue, rate == 0 {
+                                    finalPlaying = false
+                                } else if !isPlaying {
+                                    finalPlaying = false
+                                }
+                            }
+                            self.emitState(isPlaying: finalPlaying, title: title, artist: artist)
+                        }
+                    } else {
+                        self.emitState(isPlaying: finalPlaying, title: title, artist: artist)
                     }
                 }
+            } else {
+                self.emitState(isPlaying: isPlaying, title: title, artist: artist)
+            }
+        }
+    }
+
+    private func emitState(isPlaying: Bool, title: String, artist: String) {
+        if isPlaying != lastIsPlaying || title != lastTitle || artist != lastArtist {
+            lastIsPlaying = isPlaying
+            lastTitle = title
+            lastArtist = artist
+
+            let out: [String: Any] = [
+                "type": "media",
+                "isPlaying": isPlaying,
+                "title": title,
+                "artist": artist
+            ]
+
+            if let data = try? JSONSerialization.data(withJSONObject: out, options: []),
+               let str = String(data: data, encoding: .utf8) {
+                print(str)
+                fflush(stdout)
             }
         }
     }
@@ -81,22 +146,49 @@ class MediaObserver {
         guard let sendCommand = sendCommand else { return }
         switch cmd.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
         case "play_pause", "toggle":
-            _ = sendCommand(2, nil) // kMRTogglePlayPause
+            let ok = sendCommand(2, nil) // kMRTogglePlayPause
+            if !ok { postSystemMediaKey(16) }
         case "play":
-            _ = sendCommand(0, nil) // kMRPlay
+            let ok = sendCommand(0, nil) // kMRPlay
+            if !ok { postSystemMediaKey(16) }
         case "pause":
-            _ = sendCommand(1, nil) // kMRPause
+            let ok = sendCommand(1, nil) // kMRPause
+            if !ok { postSystemMediaKey(16) }
         case "next":
-            _ = sendCommand(4, nil) // kMRNextTrack
+            let ok = sendCommand(4, nil) // kMRNextTrack
+            if !ok { postSystemMediaKey(19) }
         case "prev", "previous":
-            _ = sendCommand(5, nil) // kMRPreviousTrack
+            let ok = sendCommand(5, nil) // kMRPreviousTrack
+            if !ok { postSystemMediaKey(20) }
         default:
             break
         }
-        // Force a check right after command
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+
+        // Force an immediate check right after command
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
             self?.checkMediaState()
         }
+    }
+
+    private func postSystemMediaKey(_ key: Int32) {
+        func doKey(down: Bool) {
+            let flags = down ? 0xa00 : 0xb00
+            let data1 = Int((key << 16) | (down ? 0xa00 : 0xb00))
+            let ev = NSEvent.otherEvent(
+                with: .systemDefined,
+                location: .zero,
+                modifierFlags: NSEvent.ModifierFlags(rawValue: UInt(flags)),
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                subtype: 8,
+                data1: data1,
+                data2: -1
+            )
+            ev?.cgEvent?.post(tap: .cghidEventTap)
+        }
+        doKey(down: true)
+        doKey(down: false)
     }
 }
 

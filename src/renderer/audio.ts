@@ -1,5 +1,5 @@
-// Chiikawa Voice Lines Manager
-// Starter Pack with 16 authentic community soundboard audio clips
+// Chiikawa Voice Lines & Sound Design Manager
+// Authentic Chiikawa Voice Suite (Aoki Haruka toddler acoustic profile) + Earshot UI SFX Suite
 
 export interface VoiceClip {
   id: string;
@@ -10,6 +10,23 @@ export interface VoiceClip {
 }
 
 export const VOICE_CLIPS: VoiceClip[] = [
+  // --- Authentic Chiikawa Core Vocalizations (Aoki Haruka Profile) ---
+  { id: 'chiikawa_wah', character: 'Chiikawa', label: 'Wah (Toddler Babbling)', eventId: 'chiikawa_babble', filename: 'chiikawa_wah.mp3' },
+  { id: 'chiikawa_fuwa', character: 'Chiikawa', label: 'Fuwa~ (Curious Wonder)', eventId: 'chiikawa_thinking', filename: 'chiikawa_fuwa.mp3' },
+  { id: 'chiikawa_ya', character: 'Chiikawa', label: 'Ya! (Joyful Chirp)', eventId: 'chiikawa_success', filename: 'chiikawa_ya.mp3' },
+  { id: 'chiikawa_haa', character: 'Chiikawa', label: 'Haa... (Gentle Relief)', eventId: 'chiikawa_sigh', filename: 'chiikawa_haa.mp3' },
+  { id: 'chiikawa_puka', character: 'Chiikawa', label: 'Puka Puka (Contented Babble)', eventId: 'chiikawa_petting', filename: 'chiikawa_puka.mp3' },
+  { id: 'chiikawa_iya', character: 'Chiikawa', label: 'Iya! (Struggle / Reject)', eventId: 'chiikawa_struggle', filename: 'chiikawa_iya.mp3' },
+  { id: 'chiikawa_crying', character: 'Chiikawa', label: 'U-u-waa... (Cute Crying)', eventId: 'chiikawa_crying', filename: 'chiikawa_crying.mp3' },
+  { id: 'nani_nani', character: 'Chiikawa', label: 'Nani nani?', eventId: 'question_prompt', filename: 'nani_nani.mp3' },
+
+  // --- Earshot Procedural UI Sound Effects ---
+  { id: 'ui_pop', character: 'UI', label: 'Bubble Pop', eventId: 'ui_pop', filename: 'ui_pop.wav' },
+  { id: 'ui_hover', character: 'UI', label: 'Micro Button Hover', eventId: 'ui_hover', filename: 'ui_hover.wav' },
+  { id: 'ui_complete', character: 'UI', label: 'Task Success Chime', eventId: 'ui_complete', filename: 'ui_complete.wav' },
+  { id: 'sleep_gentle', character: 'UI', label: 'Lofi Bedtime Chime', eventId: 'sleep_chime', filename: 'sleep_gentle.wav' },
+
+  // --- Secondary / Companion Soundboard Clips (Preserved for compatibility) ---
   { id: 'usagi_una', character: 'Usagi', label: 'Una', eventId: 'assistant_start', filename: 'usagi_una.mp3' },
   { id: 'usagi_yaha', character: 'Usagi', label: 'Yaha / Yahaaaa', eventId: 'task_complete', filename: 'usagi_yaha.mp3' },
   { id: 'usagi_una_na_yaha', character: 'Usagi', label: 'U-una-na-ya-ha', eventId: 'loading_or_busy', filename: 'usagi_una_na_yaha.mp3' },
@@ -19,7 +36,6 @@ export const VOICE_CLIPS: VoiceClip[] = [
   { id: 'hachiware_oi', character: 'Hachiware', label: 'Oi', eventId: 'need_attention', filename: 'hachiware_oi.mp3' },
   { id: 'momonga_silly', character: 'Momonga', label: 'Silly noise', eventId: 'idle_random', filename: 'momonga_silly.mp3' },
   { id: 'momonga_crying', character: 'Momonga', label: 'Crying', eventId: 'error_or_sad_state', filename: 'momonga_crying.mp3' },
-  { id: 'nani_nani', character: 'Chiikawa', label: 'Nani nani?', eventId: 'question_prompt', filename: 'nani_nani.mp3' },
   { id: 'una_yaha_curry', character: 'Usagi', label: 'Una yaha - curry', eventId: 'random_reaction', filename: 'una_yaha_curry.mp3' },
   { id: 'usagi_iyaha', character: 'Usagi', label: 'IYAHA', eventId: 'high_energy_reaction', filename: 'usagi_iyaha.mp3' },
   { id: 'usagi_ulaulaula', character: 'Usagi', label: 'Ulaulaula', eventId: 'random_reaction_2', filename: 'usagi_ulaulaula.mp3' },
@@ -33,7 +49,7 @@ export class SoundManager {
   private volume: number = 0.20;
   private audioCache: Map<string, HTMLAudioElement> = new Map();
   private lastPlayedTime: number = 0;
-  private readonly MIN_INTERVAL_MS = 300; // prevent overlapping spam
+  private readonly MIN_INTERVAL_MS = 250; // prevent overlapping spam
 
   constructor(enabled: boolean = true, volume: number = 0.20) {
     this.enabled = enabled;
@@ -98,35 +114,25 @@ export class SoundManager {
 
     // 2. If not found, check if it matches a filename or clip id loosely
     if (!audio) {
-      const clip = VOICE_CLIPS.find(
-        (c) => c.id === identifier || c.eventId === identifier || c.filename === identifier
-      );
-      if (clip) {
-        audio = this.audioCache.get(clip.id);
+      for (const [key, cachedAudio] of this.audioCache.entries()) {
+        if (key.toLowerCase().includes(identifier.toLowerCase())) {
+          audio = cachedAudio;
+          break;
+        }
       }
     }
 
-    // 3. Fallback: try loading directly
     if (!audio) {
-      try {
-        const filename = identifier.endsWith('.mp3') ? identifier : `${identifier}.mp3`;
-        audio = new Audio(`./sounds/${filename}`);
-        audio.volume = this.volume;
-        this.audioCache.set(identifier, audio);
-      } catch (e) {
-        console.warn('[SoundManager] Failed to create audio for', identifier, e);
-        return;
-      }
+      console.warn(`[SoundManager] Clip not found for identifier: ${identifier}`);
+      return;
     }
 
     try {
       audio.currentTime = 0;
-      audio.volume = this.volume;
       const playPromise = audio.play();
       if (playPromise !== undefined) {
-        playPromise.catch((err) => {
-          // In some browsers autoplay may be suppressed before user gesture
-          console.debug('[SoundManager] Playback blocked or interrupted:', err);
+        playPromise.catch((error) => {
+          console.warn(`[SoundManager] Autoplay prevented or error playing ${identifier}:`, error);
         });
       }
     } catch (err) {
@@ -135,7 +141,7 @@ export class SoundManager {
   }
 
   /**
-   * Play appropriate sound for a mascot state
+   * Play appropriate authentic voice sound for a mascot state
    */
   public playForState(state: string, customSoundOrEvent?: string): void {
     if (customSoundOrEvent) {
@@ -145,40 +151,54 @@ export class SoundManager {
 
     switch (state) {
       case 'thinking':
-        this.play('loading_or_busy'); // usagi_una_na_yaha
+        this.play('chiikawa_fuwa');
         break;
       case 'success':
-        // Alternate between yaha and yaha_alt
-        this.play(Math.random() > 0.4 ? 'task_complete' : 'task_complete_alt'); // usagi_yaha
+        this.play('chiikawa_ya');
         break;
       case 'alert':
-        this.play(Math.random() > 0.5 ? 'need_attention' : 'attention_surprise'); // hachiware_oi or usagi_haaa
+        this.play(Math.random() > 0.5 ? 'nani_nani' : 'chiikawa_wah');
         break;
       case 'error':
-        this.play('error_or_sad_state'); // momonga_crying
+        this.play('chiikawa_crying');
+        break;
+      case 'struggle':
+        this.play('chiikawa_iya');
         break;
       case 'idle':
-        // do not play sound on normal idle transitions
+        // No sound on normal idle transition
         break;
       default:
-        this.play('notification'); // usagi_wula
+        this.play('chiikawa_wah');
         break;
     }
   }
 
   /**
-   * Play random reaction sound (e.g. when poked/dragged/clicked)
+   * Play authentic random Chiikawa toddler reaction sound (e.g. when poked/dragged/clicked)
    */
   public playRandomReaction(): void {
     const reactions = [
-      'una_yaha_curry',
-      'usagi_iyaha',
-      'usagi_ulaulaula',
-      'momonga_silly',
-      'usagi_una',
-      'usagi_wula',
+      'chiikawa_wah',
+      'chiikawa_ya',
+      'chiikawa_fuwa',
+      'chiikawa_puka',
+      'chiikawa_haa',
+      'nani_nani',
     ];
     const pick = reactions[Math.floor(Math.random() * reactions.length)];
     this.play(pick);
+  }
+
+  public playUiPop(): void {
+    this.play('ui_pop');
+  }
+
+  public playUiHover(): void {
+    this.play('ui_hover');
+  }
+
+  public playSleepChime(): void {
+    this.play('sleep_gentle');
   }
 }

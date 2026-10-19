@@ -132,21 +132,7 @@ export class MediaManager {
       }
     }
 
-    // 2. AppleScript virtual media key fallback for guaranteed responsiveness
-    if (process.platform === 'darwin') {
-      let keyCode = 100; // default play/pause
-      if (cmd === 'next') keyCode = 101;
-      else if (cmd === 'prev') keyCode = 98;
-
-      exec(
-        `osascript -e 'tell application "System Events" to key code ${keyCode}'`,
-        (err) => {
-          if (err) {
-            // Non-critical if system events permission isn't granted yet
-          }
-        }
-      );
-    }
+    // Command is handled cleanly and natively by desktop-helper via stdin
   }
 
   private setupIpc(): void {

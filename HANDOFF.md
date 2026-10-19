@@ -1,10 +1,10 @@
 # 🐾 Chiikawa AI (c.ai) — Comprehensive Project Handoff Context
 
-> **Version**: `v1.4.0` — **"Health & Harmony Update"** (Lofi Vibes, Health Scheduler & 3D Headphones)  
+> **Version**: `v1.4.1` — **"Chiikawa Authentic Voice & Brave Media Hotfix"**  
 > **Repository**: [https://github.com/wheddy123/chiikawa-companion](https://github.com/wheddy123/chiikawa-companion)  
 > **Last Updated**: 2026-10-19  
 > **Target OS**: macOS (Apple Silicon / Intel) & Windows 10/11  
-> **Status**: Production release `v1.4.0` with Articulated Rigging (8 bones), Health Scheduler (Water reminder + 22:30 Sleep alert with strict 5m snooze loop), macOS Native Media Engine (`MRMediaRemote` Now Playing & Controls), Procedural 3D Headphones with reactive pop-in/pop-out scale animation, Mini-Player translucent glassmorphism widget, double-click mute toggle, calibrated mouth anchor bandaid, speech bubble system, and comprehensive verification suite (`npm run verify`).
+> **Status**: Production release `v1.4.1` with Authentic Chiikawa Voice Suite (Aoki Haruka toddler acoustic profile), Earshot Forge UI SFX Suite, Brave Media Remote Hotfix (playbackRate & notification observer), Health Scheduler, 3D Headphones, and packaged desktop artifact.
 
 ---
 
@@ -13,26 +13,37 @@
 **Chiikawa AI (c.ai)** is an ultra-lightweight, high-framerate 3D desktop companion designed to sit on the user's screen (above the macOS Dock or Windows Taskbar) and act as a playful, expressive visual frontend and lifestyle assistant for **AI Coding Agents** (such as Antigravity, OpenCode, Claude Code, Cursor, and Roo Code) as well as the Operator's daily workflow.
 
 ### Key Value Propositions
-1. **Human-in-the-Loop (HITL) 1-Click Decisions**:
+1. **Authentic Chiikawa Voice Suite (New in v1.4.1)**:
+   Replaces legacy placeholder screams with true Chiikawa toddler vocalizations (toddler babble "Wah", curious "Fuwa~", joyful chirp "Ya!", gentle relief "Haa...", contented "Puka puka", struggle "Iya!", and cute sobbing "U-u-waa..."). Formant-filtered for infant acoustics ($f_0 \approx 520 - 680\text{ Hz}$, high-pass $> 180\text{ Hz}$, anime presence boost at 3.5 kHz).
+2. **Earshot Forge UI SFX Suite (New in v1.4.1)**:
+   100% procedural mathematically normalized sound design (`ui_pop.wav`, `ui_hover.wav`, `ui_complete.wav`, `sleep_gentle.wav`) with zero clipping and smooth envelope transitions.
+3. **Hardened Brave / Chromium Media Integration (Hotfixed in v1.4.1)**:
+   Resolves silent failure on Brave browser by tracking `kMRMediaRemoteNowPlayingInfoPlaybackRate` (> 0 for playing) and `MRMediaRemoteGetNowPlayingApplicationPlaybackState`, eliminating 0.8s polling latency with `MRMediaRemoteRegisterForNowPlayingNotifications`, and removing buggy F8 keycode collisions.
+4. **Human-in-the-Loop (HITL) 1-Click Decisions**:
    Instead of cumbersome terminal dialogs or intrusive full-screen popups, agents prompt the user directly through Chiikawa's floating speech bubble with 1-click decision buttons (e.g. `Approve`, `Review`, `Reject`).
-2. **Health & Wellness Scheduler (New in v1.4.0)**:
+5. **Health & Wellness Scheduler**:
    Proactive reminders for the Operator: periodic hydration alerts with 1-click acknowledgment (`Đã uống 💧`) and evening sleep alerts (`22:30`) with an infinite 5-minute snooze loop (`Cố thêm 5 phút ⏰`) until the user decides to sleep (`Đi ngủ luôn 🛌`).
-3. **OS Media Integration & 3D Headphones (New in v1.4.0)**:
+6. **OS Media Integration & 3D Headphones**:
    Real-time macOS Now Playing tracking via lightweight private native Swift helper (`MRMediaRemote`), displaying track metadata in a floating translucent Mini-Player with playback controls (`[⏮] [⏯] [⏭]`). Procedural Three.js 3D headphones dynamically pop onto Chiikawa's head when music is playing and pop off when paused.
-4. **Articulated 8-Bone Skeletal Presence**:
-   A rigged 3D model of Chiikawa rendered at 60 FPS in Three.js with soft vinyl studio lighting, eyes tracking the mouse cursor, and expressive procedural animations (breathing, shy glance, ear twitches, sit-down plushie pose, head petting reaction, dangling drag flail, and jello rebound).
-5. **Authentic Voice Lines**:
-   16 curated community soundboard clips (Usagi, Chiikawa, Hachiware, Momonga) playing at a pleasant, non-startling volume (`0.20`), with instant audio cut on mute.
-6. **Universal Agent Integration**:
-   Built-in Model Context Protocol (MCP) server (`scripts/chiikawa-mcp.js`) and local REST API (`127.0.0.1:7788`) with Bearer token authentication.
-
-> [!NOTE]
-> **Về việc định danh phiên bản v1.4.0 (thay vì v2.0)**:  
-> Bản cập nhật này tập trung hoàn thiện trải nghiệm desktop thường nhật (tiện ích sức khỏe, âm nhạc, visual headphones và độ bền bỉ kiểm thử). Phiên bản mang tính bước ngoặt **v2.0** sẽ được dành cho đột phá kiến trúc tiếp theo (như Mascot Autonomous Brain, Local LLM Co-Pilot, hoặc Proactive Long-Term Memory).
 
 ---
 
 ## 2. 📅 Release History & Changelog
+
+### 🎙️ v1.4.1 — "Authentic Voice & Brave Hotfix" (2026-10-19)
+- **Brave Media Integration Hotfix (`src/main/platform/desktop-helper.swift`, `src/main/media.ts`)**:
+  - Sửa lỗi silent failure trên Brave: Bổ sung đọc `kMRMediaRemoteNowPlayingInfoPlaybackRate` và `MRMediaRemoteGetNowPlayingApplicationPlaybackState` (State 1 = Playing). Giờ đây khi Brave phát video YouTube / nhạc web, tai nghe 3D Headphones lập tức kích hoạt và Mini-Player hiện nút Pause `⏸`.
+  - Thay vì chỉ dựa vào polling 0.8s, helper đăng ký observer sự kiện hệ thống `MRMediaRemoteRegisterForNowPlayingNotifications` để cập nhật tức thì khi đổi bài hoặc play/pause.
+  - Xóa bỏ câu lệnh AppleScript `key code 100` (phím F8) trong `media.ts`, chuyển sang gọi trực tiếp lệnh native `MRMediaRemoteSendCommand` với fallback gửi system media key `NX_KEYTYPE_PLAY`.
+  - Bổ sung CSS `.media-artist:empty` giúp căn giữa tiêu đề hoàn hảo khi phát video YouTube không có thẻ artist.
+- **Chiikawa Authentic Voice Suite (`assets/sounds/`, `src/renderer/audio.ts`, `docs/CHIIKAWA_VOICE_DESIGN.md`)**:
+  - Tái tạo chuẩn âm học Chiikawa theo diễn viên lồng tiếng Aoki Haruka (2–4 tuổi toddler, $f_0 \approx 520 - 680\text{ Hz}$, formants $F_1 \approx 900\text{ Hz}$, $F_2 \approx 1800 - 2400\text{ Hz}$, lọc cắt trầm $< 180\text{ Hz}$ và tăng độ trong sáng 3.5 kHz).
+  - Tích hợp 7 âm thanh đặc trưng: `chiikawa_wah.mp3`, `chiikawa_fuwa.mp3`, `chiikawa_ya.mp3`, `chiikawa_haa.mp3`, `chiikawa_puka.mp3`, `chiikawa_iya.mp3`, `chiikawa_crying.mp3`.
+  - Chiikawa trở thành giọng nói chủ đạo cho các phản xạ mascot (xoa đầu, suy nghĩ, hoàn thành task, struggle, lỗi), thay vì chỉ có Usagi như trước.
+- **Earshot Forge UI SFX Suite**:
+  - Tích hợp 4 âm thanh UI thuần mã nguồn DSP: `ui_pop.wav`, `ui_hover.wav`, `ui_complete.wav`, `sleep_gentle.wav` đạt chuẩn âm học 12/12 PASS (Peak $\le -3.1\text{ dBFS}$, RMS $[-18, -12]\text{ dBFS}$).
+- **Final Release DMG**:
+  - Đóng gói bản cài đặt hoàn chỉnh và copy trực tiếp ra Desktop: `/Users/wheddy/Desktop/Chiikawa-AI-v1.4.1-arm64.dmg`.
 
 ### 🎧 v1.4.0 — "Health & Harmony Update" (2026-10-19)
 - **Health Scheduler (`src/main/scheduler.ts`)**:

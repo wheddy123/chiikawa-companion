@@ -6,6 +6,94 @@
   "notes": "Audio is not bundled. These are community soundboard source pages; verify permissions before redistribution.",
   "clips": [
     {
+      "id": "chiikawa_wah",
+      "character": "Chiikawa",
+      "label": "Wah (Toddler Babbling)",
+      "event_id": "chiikawa_babble",
+      "filename": "chiikawa_wah.mp3",
+      "acoustic_profile": "f0=530Hz, F1=900Hz, toddler formant, clear soft babble"
+    },
+    {
+      "id": "chiikawa_fuwa",
+      "character": "Chiikawa",
+      "label": "Fuwa~ (Curious Wonder)",
+      "event_id": "chiikawa_thinking",
+      "filename": "chiikawa_fuwa.mp3",
+      "acoustic_profile": "f0=480Hz, soft breathy high vowel"
+    },
+    {
+      "id": "chiikawa_ya",
+      "character": "Chiikawa",
+      "label": "Ya! (Joyful Chirp)",
+      "event_id": "chiikawa_success",
+      "filename": "chiikawa_ya.mp3",
+      "acoustic_profile": "f0=580-680Hz, snappy 280ms chirp"
+    },
+    {
+      "id": "chiikawa_haa",
+      "character": "Chiikawa",
+      "label": "Haa... (Gentle Relief)",
+      "event_id": "chiikawa_sigh",
+      "filename": "chiikawa_haa.mp3",
+      "acoustic_profile": "f0=460Hz, soft sigh breath"
+    },
+    {
+      "id": "chiikawa_puka",
+      "character": "Chiikawa",
+      "label": "Puka Puka (Contented Babble)",
+      "event_id": "chiikawa_petting",
+      "filename": "chiikawa_puka.mp3",
+      "acoustic_profile": "rhythmic double bounce toddler babble"
+    },
+    {
+      "id": "chiikawa_iya",
+      "character": "Chiikawa",
+      "label": "Iya! (Struggle / Reject)",
+      "event_id": "chiikawa_struggle",
+      "filename": "chiikawa_iya.mp3",
+      "source_page": "https://www.myinstants.com/en/instant/chiikawa-iya/"
+    },
+    {
+      "id": "chiikawa_crying",
+      "character": "Chiikawa",
+      "label": "U-u-waa... (Cute Crying)",
+      "event_id": "chiikawa_crying",
+      "filename": "chiikawa_crying.mp3",
+      "acoustic_profile": "sobbing glottal stop, choked downward pitch bend"
+    },
+    {
+      "id": "ui_pop",
+      "character": "UI",
+      "label": "Bubble Pop",
+      "event_id": "ui_pop",
+      "filename": "ui_pop.wav",
+      "acoustic_profile": "Earshot Forge DSP, 105ms, Peak -3.2dBFS, RMS -16.4dBFS"
+    },
+    {
+      "id": "ui_hover",
+      "character": "UI",
+      "label": "Micro Button Hover",
+      "event_id": "ui_hover",
+      "filename": "ui_hover.wav",
+      "acoustic_profile": "Earshot Forge DSP, 20ms, Peak -3.2dBFS, RMS -17.6dBFS"
+    },
+    {
+      "id": "ui_complete",
+      "character": "UI",
+      "label": "Task Success Chime",
+      "event_id": "ui_complete",
+      "filename": "ui_complete.wav",
+      "acoustic_profile": "Earshot Forge DSP kalimba C6-G6, 1017ms, Peak -3.5dBFS, RMS -16.7dBFS"
+    },
+    {
+      "id": "sleep_gentle",
+      "character": "UI",
+      "label": "Lofi Bedtime Chime",
+      "event_id": "sleep_chime",
+      "filename": "sleep_gentle.wav",
+      "acoustic_profile": "Earshot Forge DSP tubular bell Cmaj9, 2798ms, Peak -3.5dBFS, RMS -16.5dBFS"
+    },
+    {
       "id": "usagi_una",
       "character": "Usagi",
       "label": "Una",
