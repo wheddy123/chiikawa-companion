@@ -3,7 +3,7 @@ import CoreGraphics
 import Foundation
 
 // MARK: - Dynamic MediaRemote Bindings
-typealias MRMediaRemoteGetNowPlayingInfoFunction = @convention(c) (DispatchQueue, @escaping ([String: Any]) -> Void) -> Void
+typealias MRMediaRemoteGetNowPlayingInfoFunction = @convention(c) (DispatchQueue, @escaping (CFDictionary?) -> Void) -> Void
 typealias MRMediaRemoteGetNowPlayingApplicationIsPlayingFunction = @convention(c) (DispatchQueue, @escaping (Bool) -> Void) -> Void
 typealias MRMediaRemoteGetNowPlayingApplicationPlaybackStateFunction = @convention(c) (DispatchQueue, @escaping (UInt32) -> Void) -> Void
 typealias MRMediaRemoteRegisterForNowPlayingNotificationsFunction = @convention(c) (DispatchQueue) -> Void
@@ -74,49 +74,26 @@ class MediaObserver {
     func checkMediaState() {
         guard let getInfo = getInfo else { return }
 
-        getInfo(DispatchQueue.main) { [weak self] info in
-            guard let self = self else { return }
+        getInfo(DispatchQueue.main) { [weak self] cfInfo in
+            guard let self = self, let cfInfo = cfInfo else { return }
+            let dict = cfInfo as NSDictionary
 
-            let title = (info["kMRMediaRemoteNowPlayingInfoTitle"] as? String) ?? ""
-            let artist = (info["kMRMediaRemoteNowPlayingInfoArtist"] as? String) ?? ""
+            let title = (dict["kMRMediaRemoteNowPlayingInfoTitle"] as? String) ?? ""
+            let artist = (dict["kMRMediaRemoteNowPlayingInfoArtist"] as? String) ?? ""
 
-            // Determine isPlaying robustly across Music.app, Spotify, and Chromium/Brave
-            var isPlaying = false
-
-            // 1. Check PlaybackRate (Chromium, Brave, Safari, Spotify set this accurately: > 0.0 when playing)
-            if let rate = (info["kMRMediaRemoteNowPlayingInfoPlaybackRate"] as? Double) ?? (info["kMRMediaRemoteNowPlayingInfoPlaybackRate"] as? NSNumber)?.doubleValue {
-                if rate > 0.0 {
-                    isPlaying = true
-                }
+            var ratePlaying = false
+            if let rate = (dict["kMRMediaRemoteNowPlayingInfoPlaybackRate"] as? NSNumber)?.doubleValue {
+                ratePlaying = rate > 0.0
             }
 
-            // 2. Cross-verify with getIsPlaying if available
             if let getIsPlaying = self.getIsPlaying {
                 getIsPlaying(DispatchQueue.main) { [weak self] sysIsPlaying in
                     guard let self = self else { return }
-                    var finalPlaying = isPlaying || sysIsPlaying
-
-                    // 3. Cross-verify with PlaybackState (1 = Playing, 2 = Paused, 3 = Stopped)
-                    if let getState = self.getPlaybackState {
-                        getState(DispatchQueue.main) { [weak self] state in
-                            guard let self = self else { return }
-                            if state == 1 {
-                                finalPlaying = true
-                            } else if state == 2 || state == 3 {
-                                if let rate = (info["kMRMediaRemoteNowPlayingInfoPlaybackRate"] as? Double) ?? (info["kMRMediaRemoteNowPlayingInfoPlaybackRate"] as? NSNumber)?.doubleValue, rate == 0 {
-                                    finalPlaying = false
-                                } else if !isPlaying {
-                                    finalPlaying = false
-                                }
-                            }
-                            self.emitState(isPlaying: finalPlaying, title: title, artist: artist)
-                        }
-                    } else {
-                        self.emitState(isPlaying: finalPlaying, title: title, artist: artist)
-                    }
+                    let isPlaying = ratePlaying || sysIsPlaying
+                    self.emitState(isPlaying: isPlaying, title: title, artist: artist)
                 }
             } else {
-                self.emitState(isPlaying: isPlaying, title: title, artist: artist)
+                self.emitState(isPlaying: ratePlaying, title: title, artist: artist)
             }
         }
     }

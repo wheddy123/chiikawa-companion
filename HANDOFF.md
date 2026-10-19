@@ -31,14 +31,18 @@
 ## 2. 📅 Release History & Changelog
 
 ### 🎙️ v1.4.1 — "Authentic Voice & Brave Hotfix" (2026-10-19)
-- **Brave Media Integration Hotfix (`src/main/platform/desktop-helper.swift`, `src/main/media.ts`)**:
-  - Sửa lỗi silent failure trên Brave: Bổ sung đọc `kMRMediaRemoteNowPlayingInfoPlaybackRate` và `MRMediaRemoteGetNowPlayingApplicationPlaybackState` (State 1 = Playing). Giờ đây khi Brave phát video YouTube / nhạc web, tai nghe 3D Headphones lập tức kích hoạt và Mini-Player hiện nút Pause `⏸`.
-  - Thay vì chỉ dựa vào polling 0.8s, helper đăng ký observer sự kiện hệ thống `MRMediaRemoteRegisterForNowPlayingNotifications` để cập nhật tức thì khi đổi bài hoặc play/pause.
+- **Brave Media Integration Hotfix (`src/main/platform/desktop-helper.swift`, `src/main/media.ts`, `electron-builder.json`)**:
+  - Sửa lỗi silent failure trên Brave & Packaged App:
+    - Bổ sung `desktop-helper` vào `extraResources` trong `electron-builder.json` và cập nhật `resolveHelperPath` trỏ ra ngoài `app.asar` (`process.resourcesPath`), khắc phục triệt để lỗi kernel `posix_spawn ENOTDIR` khi ứng dụng chạy từ `.dmg` / `/Applications`.
+    - Sửa lỗi ép kiểu dictionary trong Swift (`cfInfo as NSDictionary`), khắc phục lỗi rớt metadata bài hát khi `cfInfo` chứa artwork binary data.
+    - Đọc `kMRMediaRemoteNowPlayingInfoPlaybackRate` (> 0 for playing) và `MRMediaRemoteGetNowPlayingApplicationPlaybackState` (State 1 = Playing). Giờ đây khi Brave phát video YouTube / nhạc web, tai nghe 3D Headphones lập tức kích hoạt và Mini-Player hiện nút Pause `⏸`.
+    - Observer sự kiện hệ thống `MRMediaRemoteRegisterForNowPlayingNotifications` và IPC `renderer:ready` giúp đồng bộ metadata tức thì.
   - Xóa bỏ câu lệnh AppleScript `key code 100` (phím F8) trong `media.ts`, chuyển sang gọi trực tiếp lệnh native `MRMediaRemoteSendCommand` với fallback gửi system media key `NX_KEYTYPE_PLAY`.
   - Bổ sung CSS `.media-artist:empty` giúp căn giữa tiêu đề hoàn hảo khi phát video YouTube không có thẻ artist.
 - **Chiikawa Authentic Voice Suite (`assets/sounds/`, `src/renderer/audio.ts`, `docs/CHIIKAWA_VOICE_DESIGN.md`)**:
   - Tái tạo chuẩn âm học Chiikawa theo diễn viên lồng tiếng Aoki Haruka (2–4 tuổi toddler, $f_0 \approx 520 - 680\text{ Hz}$, formants $F_1 \approx 900\text{ Hz}$, $F_2 \approx 1800 - 2400\text{ Hz}$, lọc cắt trầm $< 180\text{ Hz}$ và tăng độ trong sáng 3.5 kHz).
   - Tích hợp 7 âm thanh đặc trưng: `chiikawa_wah.mp3`, `chiikawa_fuwa.mp3`, `chiikawa_ya.mp3`, `chiikawa_haa.mp3`, `chiikawa_puka.mp3`, `chiikawa_iya.mp3`, `chiikawa_crying.mp3`.
+  - Tích hợp tài liệu đặc tả chuẩn hóa **Chiikawa Voice Design Specification** vào `docs/CHIIKAWA_VOICE_DESIGN.md` (vocal characteristics, speech patterns, emotional range, audio production guidelines, constraints).
   - Chiikawa trở thành giọng nói chủ đạo cho các phản xạ mascot (xoa đầu, suy nghĩ, hoàn thành task, struggle, lỗi), thay vì chỉ có Usagi như trước.
 - **Earshot Forge UI SFX Suite**:
   - Tích hợp 4 âm thanh UI thuần mã nguồn DSP: `ui_pop.wav`, `ui_hover.wav`, `ui_complete.wav`, `sleep_gentle.wav` đạt chuẩn âm học 12/12 PASS (Peak $\le -3.1\text{ dBFS}$, RMS $[-18, -12]\text{ dBFS}$).

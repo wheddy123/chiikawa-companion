@@ -10,6 +10,11 @@
   ],
   "extraResources": [
     {
+      "from": "dist/main/platform/desktop-helper",
+      "to": "desktop-helper",
+      "filter": ["*"]
+    },
+    {
       "from": "dist/main/platform/raycast-watcher",
       "to": "raycast-watcher",
       "filter": ["*"]

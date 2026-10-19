@@ -73,16 +73,26 @@ export class MediaManager {
   }
 
   private resolveHelperPath(): string | null {
-    const candidates = [
-      path.join(app.getAppPath(), 'dist/main/platform/desktop-helper'),
-      path.join(app.getAppPath(), 'dist/main/platform/raycast-watcher'),
-      path.join(process.resourcesPath || '', 'raycast-watcher'),
+    if (app.isPackaged) {
+      const packagedCandidates = [
+        path.join(process.resourcesPath, 'desktop-helper'),
+        path.join(process.resourcesPath, 'raycast-watcher'),
+      ];
+      for (const c of packagedCandidates) {
+        if (fs.existsSync(c)) return c;
+      }
+    }
+
+    // Dev mode candidates (strictly outside virtual asar)
+    const devCandidates = [
       path.join(__dirname, 'platform/desktop-helper'),
       path.join(__dirname, 'platform/raycast-watcher'),
+      path.join(process.cwd(), 'dist/main/platform/desktop-helper'),
+      path.join(process.cwd(), 'dist/main/platform/raycast-watcher'),
     ];
 
-    for (const c of candidates) {
-      if (fs.existsSync(c)) return c;
+    for (const c of devCandidates) {
+      if (!c.includes('.asar') && fs.existsSync(c)) return c;
     }
     return null;
   }
@@ -142,6 +152,12 @@ export class MediaManager {
 
     ipcMain.handle('media:get-state', () => {
       return this.getCurrentState();
+    });
+
+    ipcMain.on('renderer:ready', () => {
+      if (this.currentState.title || this.currentState.isPlaying) {
+        this.broadcastMediaState(this.currentState);
+      }
     });
   }
 

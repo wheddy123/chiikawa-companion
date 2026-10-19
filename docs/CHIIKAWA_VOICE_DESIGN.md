@@ -1,6 +1,49 @@
 # 🎙️ Chiikawa Voice Cloning & Acoustic Design Specification
 
-> **Mục tiêu**: Tái tạo và cấu hình giọng nói chuẩn xác cho nhân vật **Chiikawa (ちいかわ)** theo đúng phong cách diễn xuất của diễn viên lồng tiếng **Aoki Haruka (青木遥)**, ứng dụng cho các mô hình AI Voice Cloning (RVC, VITS, ElevenLabs, Bark, Audiobox).
+> **Mục tiêu**: Tái tạo và cấu hình giọng nói chuẩn xác cho nhân vật **Chiikawa (ちいかわ)** theo phong cách nguyên bản của diễn viên lồng tiếng **Aoki Haruka (青木遥)**, ứng dụng cho các mô hình AI Voice Cloning (RVC, VITS, ElevenLabs, Bark, Audiobox).
+
+---
+
+## 🌟 Chiikawa Voice Design Specification
+
+**Voice identity:** A tiny, soft-spoken, high-pitched Japanese mascot voice with a delicate, innocent, slightly timid personality. The voice should feel emotionally expressive, vulnerable, warm, and endearing rather than artificially cute.
+
+### 1. Vocal characteristics
+- **Pitch:** Naturally high-pitched, light and youthful, with gentle pitch fluctuations. Avoid excessively shrill or piercing frequencies.
+- **Timbre:** Soft, airy, rounded, slightly nasal, with a delicate and almost squeaky texture.
+- **Resonance:** Small, forward-focused vocal resonance, creating the impression of a tiny character speaking softly.
+- **Texture:** Clean but not overly polished. Preserve subtle breathiness and natural vocal variation.
+- **Volume:** Generally quiet to moderate, with occasional small bursts of excitement or surprise.
+
+### 2. Speech patterns
+- Short utterances, simple syllables, and frequent pauses.
+- Gentle, hesitant delivery when uncertain.
+- Slightly elongated vowels when expressing surprise, sadness, relief, or affection.
+- Small pitch jumps during excitement or panic.
+- Soft, breathy endings to sentences.
+- Occasional nonverbal vocalizations such as tiny gasps, whimpers, giggles, and sleepy sighs.
+
+### 3. Emotional range
+- **Happy:** Bright, bouncy pitch with light, quick delivery.
+- **Shy:** Quiet volume, hesitant rhythm, slightly wavering pitch.
+- **Sad:** Softer, slower, breathier delivery with a downward pitch contour.
+- **Surprised:** A brief sharp rise in pitch followed by a tiny pause.
+- **Sleepy:** Slow, relaxed articulation, low energy, gentle sighs.
+- **Comforting:** Warm, soft, steady delivery without exaggerated sweetness.
+
+### 4. Audio production
+- Close-mic intimacy with minimal room ambience.
+- Low background noise and restrained compression.
+- Preserve natural dynamics and vocal detail.
+- Avoid excessive high-frequency boosts, harsh sibilance, metallic artifacts, and synthetic robotic formants.
+- Keep short vocal effects clean and easy to mix with UI sounds.
+
+### 5. Important constraints
+- Prioritize emotional authenticity over exaggerated kawaii stereotypes.
+- Do not make every utterance sound identical.
+- Avoid an adult announcer tone, a deep cartoon voice, or an excessively squeaky pitch.
+- Treat this as an original voice inspired by the broad qualities of a tiny, timid mascot, not an exact reproduction of a specific actor or copyrighted character performance.
+- For speech synthesis, use a licensed voice model or an original voice with appropriate usage rights.
 
 ---
 

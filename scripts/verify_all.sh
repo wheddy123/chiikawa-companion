@@ -37,8 +37,8 @@ run_step "Gesture Unit Tests" "node scripts/test_gesture.mjs"
 run_step "Secrets Guard" "bash scripts/guard_secrets.sh"
 
 # 5. Live E2E Checks if Server is Running in Debug Mode
-if curl -s http://127.0.0.1:7788/health >/dev/null 2>&1; then
-  echo "Detected live mascot server at 127.0.0.1:7788"
+if curl -s http://127.0.0.1:7788/health >/dev/null 2>&1 && [ "$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:7788/debug/state)" != "404" ]; then
+  echo "Detected live debug mascot server at 127.0.0.1:7788"
   run_step "E2E: Double-Click Mute Toggle Sequence" "python3 scripts/test_double_click_sequence.py"
   
   if [ "${VERIFY_FULL_E2E:-0}" = "1" ]; then
