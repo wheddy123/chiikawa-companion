@@ -58,10 +58,10 @@ export class HealthScheduler {
           id: 'water_drank',
           label: 'Đã uống 💧',
           style: 'primary',
-          sound: 'task_complete',
+          sound: 'ui_complete',
         },
       ],
-      sound: 'usagi_una',
+      sound: 'ui_pop',
       duration_ms: 0, // sticky until acknowledged
       sticky: true,
       source: 'health_scheduler',
@@ -145,7 +145,7 @@ export class HealthScheduler {
         this.callbacks.sendNotification({
           state: 'success',
           message: 'Chúc sếp ngủ thật ngon nha! ✨🐾',
-          sound: 'usagi_yaha',
+          sound: 'ui_complete',
           duration_ms: 4000,
           source: 'health_scheduler',
         });

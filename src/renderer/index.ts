@@ -38,10 +38,10 @@ async function init() {
         soundManager.play('ui_complete');
         animator.setState('success');
       } else if (opt.style === 'danger') {
-        soundManager.play('chiikawa_iya');
+        soundManager.play('ui_pop');
         animator.setState('alert');
       } else {
-        soundManager.play('chiikawa_ya');
+        soundManager.play('ui_complete');
       }
 
       // 2. Post human decision back to local server / agent queue
@@ -344,7 +344,7 @@ async function init() {
             state: 'success',
             message: 'Haaa~! Thoát rồi! Đã gỡ băng keo & bật lại âm thanh 🎵',
             source: 'chiikawa',
-            sound: 'usagi_yaha',
+            sound: 'ui_complete',
             duration_ms: 2800,
             sticky: false,
           });

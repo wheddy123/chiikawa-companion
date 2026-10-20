@@ -39,11 +39,10 @@
     - Observer sự kiện hệ thống `MRMediaRemoteRegisterForNowPlayingNotifications` và IPC `renderer:ready` giúp đồng bộ metadata tức thì.
   - Xóa bỏ câu lệnh AppleScript `key code 100` (phím F8) trong `media.ts`, chuyển sang gọi trực tiếp lệnh native `MRMediaRemoteSendCommand` với fallback gửi system media key `NX_KEYTYPE_PLAY`.
   - Bổ sung CSS `.media-artist:empty` giúp căn giữa tiêu đề hoàn hảo khi phát video YouTube không có thẻ artist.
-- **Chiikawa Authentic Voice Suite (`assets/sounds/`, `src/renderer/audio.ts`, `docs/CHIIKAWA_VOICE_DESIGN.md`)**:
-  - Tái tạo chuẩn âm học Chiikawa theo diễn viên lồng tiếng Aoki Haruka (2–4 tuổi toddler, $f_0 \approx 520 - 680\text{ Hz}$, formants $F_1 \approx 900\text{ Hz}$, $F_2 \approx 1800 - 2400\text{ Hz}$, lọc cắt trầm $< 180\text{ Hz}$ và tăng độ trong sáng 3.5 kHz).
-  - Tích hợp 7 âm thanh đặc trưng: `chiikawa_wah.mp3`, `chiikawa_fuwa.mp3`, `chiikawa_ya.mp3`, `chiikawa_haa.mp3`, `chiikawa_puka.mp3`, `chiikawa_iya.mp3`, `chiikawa_crying.mp3`.
-  - Tích hợp tài liệu đặc tả chuẩn hóa **Chiikawa Voice Design Specification** vào `docs/CHIIKAWA_VOICE_DESIGN.md` (vocal characteristics, speech patterns, emotional range, audio production guidelines, constraints).
-  - Chiikawa trở thành giọng nói chủ đạo cho các phản xạ mascot (xoa đầu, suy nghĩ, hoàn thành task, struggle, lỗi), thay vì chỉ có Usagi như trước.
+- **Pure Earshot Sound Architecture (Legacy Voice Purge)**:
+  - Xóa bỏ 100% các file voice cũ gây ồn/chói tai (`usagi_*.mp3`, `momonga_*.mp3`, `hachiware_*.mp3`, `una_*.mp3` và các voice placeholder).
+  - Toàn bộ app chuyển sang sử dụng bộ âm thanh thuần DSP Earshot nhẹ nhàng, tinh tế và êm tai.
+  - Bộ đặc tả chuẩn hóa **Chiikawa Voice Design Specification** được lưu trữ trong `docs/CHIIKAWA_VOICE_DESIGN.md` phục vụ cho pipeline huấn luyện AI voice cloning chuyên nghiệp sau này.
 - **Earshot Forge UI SFX Suite (Phase P5 Integrated)**:
   - Tích hợp 4 âm thanh UI thuần mã nguồn DSP theo đúng lựa chọn người dùng (HITL approved):
     - `ui_pop`: v2 (`ui_pop_v2.wav` — 82ms, micro plop giòn dứt khoát).
