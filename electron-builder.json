@@ -10,6 +10,10 @@
   ],
   "extraResources": [
     {
+      "from": "src/main/platform/desktop-helper.swift",
+      "to": "desktop-helper.swift"
+    },
+    {
       "from": "dist/main/platform/desktop-helper",
       "to": "desktop-helper",
       "filter": ["*"]

@@ -30,15 +30,15 @@ export class MediaManager {
       return;
     }
 
-    const helperPath = this.resolveHelperPath();
-    if (!helperPath || !fs.existsSync(helperPath)) {
-      console.warn('[MediaManager] Native helper not found at:', helperPath);
+    const helper = this.resolveHelper();
+    if (!helper) {
+      console.warn('[MediaManager] Native helper not found.');
       return;
     }
 
     try {
-      console.log('[MediaManager] Spawning native helper:', helperPath);
-      this.helperProcess = spawn(helperPath, [], {
+      console.log('[MediaManager] Spawning native helper:', helper.command, helper.args.join(' '));
+      this.helperProcess = spawn(helper.command, helper.args, {
         stdio: ['pipe', 'pipe', 'ignore'],
       });
 
@@ -72,14 +72,31 @@ export class MediaManager {
     }
   }
 
-  private resolveHelperPath(): string | null {
+  private resolveHelper(): { command: string; args: string[] } | null {
+    // 1. If /usr/bin/swift exists and desktop-helper.swift exists, use /usr/bin/swift (Apple-signed -> full MediaRemote access)
+    const swiftBin = '/usr/bin/swift';
+    const scriptCandidates = [
+      path.join(process.resourcesPath || '', 'desktop-helper.swift'),
+      path.join(__dirname, 'platform/desktop-helper.swift'),
+      path.join(process.cwd(), 'src/main/platform/desktop-helper.swift'),
+    ];
+
+    if (fs.existsSync(swiftBin)) {
+      for (const s of scriptCandidates) {
+        if (!s.includes('.asar') && fs.existsSync(s)) {
+          return { command: swiftBin, args: [s] };
+        }
+      }
+    }
+
+    // 2. Otherwise use compiled binary (with AppleScript fallback)
     if (app.isPackaged) {
       const packagedCandidates = [
         path.join(process.resourcesPath, 'desktop-helper'),
         path.join(process.resourcesPath, 'raycast-watcher'),
       ];
       for (const c of packagedCandidates) {
-        if (fs.existsSync(c)) return c;
+        if (fs.existsSync(c)) return { command: c, args: [] };
       }
     }
 
@@ -92,7 +109,7 @@ export class MediaManager {
     ];
 
     for (const c of devCandidates) {
-      if (!c.includes('.asar') && fs.existsSync(c)) return c;
+      if (!c.includes('.asar') && fs.existsSync(c)) return { command: c, args: [] };
     }
     return null;
   }

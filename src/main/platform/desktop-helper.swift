@@ -72,29 +72,90 @@ class MediaObserver {
     }
 
     func checkMediaState() {
-        guard let getInfo = getInfo else { return }
+        if let getInfo = getInfo {
+            getInfo(DispatchQueue.main) { [weak self] cfInfo in
+                guard let self = self else { return }
+                if let cfInfo = cfInfo {
+                    let dict = cfInfo as NSDictionary
 
-        getInfo(DispatchQueue.main) { [weak self] cfInfo in
-            guard let self = self, let cfInfo = cfInfo else { return }
-            let dict = cfInfo as NSDictionary
+                    let title = (dict["kMRMediaRemoteNowPlayingInfoTitle"] as? String) ?? ""
+                    let artist = (dict["kMRMediaRemoteNowPlayingInfoArtist"] as? String) ?? ""
 
-            let title = (dict["kMRMediaRemoteNowPlayingInfoTitle"] as? String) ?? ""
-            let artist = (dict["kMRMediaRemoteNowPlayingInfoArtist"] as? String) ?? ""
+                    var ratePlaying = false
+                    if let rate = (dict["kMRMediaRemoteNowPlayingInfoPlaybackRate"] as? NSNumber)?.doubleValue {
+                        ratePlaying = rate > 0.0
+                    }
 
-            var ratePlaying = false
-            if let rate = (dict["kMRMediaRemoteNowPlayingInfoPlaybackRate"] as? NSNumber)?.doubleValue {
-                ratePlaying = rate > 0.0
-            }
-
-            if let getIsPlaying = self.getIsPlaying {
-                getIsPlaying(DispatchQueue.main) { [weak self] sysIsPlaying in
-                    guard let self = self else { return }
-                    let isPlaying = ratePlaying || sysIsPlaying
-                    self.emitState(isPlaying: isPlaying, title: title, artist: artist)
+                    if let getIsPlaying = self.getIsPlaying {
+                        getIsPlaying(DispatchQueue.main) { [weak self] sysIsPlaying in
+                            guard let self = self else { return }
+                            let isPlaying = ratePlaying || sysIsPlaying
+                            if !title.isEmpty || isPlaying {
+                                self.emitState(isPlaying: isPlaying, title: title, artist: artist)
+                                return
+                            }
+                            self.checkAppleScriptFallback()
+                        }
+                    } else if !title.isEmpty || ratePlaying {
+                        self.emitState(isPlaying: ratePlaying, title: title, artist: artist)
+                        return
+                    } else {
+                        self.checkAppleScriptFallback()
+                    }
+                } else {
+                    self.checkAppleScriptFallback()
                 }
-            } else {
-                self.emitState(isPlaying: ratePlaying, title: title, artist: artist)
             }
+        } else {
+            checkAppleScriptFallback()
+        }
+    }
+
+    private func checkAppleScriptFallback() {
+        // 1. Check Music.app if running
+        let musicApps = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Music")
+        if let musicApp = musicApps.first, !musicApp.isTerminated {
+            let script = "tell application \"Music\" to get {player state as string, name of current track, artist of current track}"
+            if let appleScript = NSAppleScript(source: script) {
+                var error: NSDictionary?
+                let res = appleScript.executeAndReturnError(&error)
+                if error == nil {
+                    let state = res.atIndex(1)?.stringValue ?? ""
+                    let title = res.atIndex(2)?.stringValue ?? ""
+                    let artist = res.atIndex(3)?.stringValue ?? ""
+                    let isPlaying = state.lowercased() == "playing"
+                    self.emitState(isPlaying: isPlaying, title: title, artist: artist)
+                    return
+                }
+            }
+        }
+
+        // 2. Check Spotify if running
+        let spotifyApps = NSRunningApplication.runningApplications(withBundleIdentifier: "com.spotify.client")
+        if let spotifyApp = spotifyApps.first, !spotifyApp.isTerminated {
+            let script = "tell application \"Spotify\" to get {player state as string, name of current track, artist of current track}"
+            if let appleScript = NSAppleScript(source: script) {
+                var error: NSDictionary?
+                let res = appleScript.executeAndReturnError(&error)
+                if error == nil {
+                    let state = res.atIndex(1)?.stringValue ?? ""
+                    let title = res.atIndex(2)?.stringValue ?? ""
+                    let artist = res.atIndex(3)?.stringValue ?? ""
+                    let isPlaying = state.lowercased() == "playing"
+                    self.emitState(isPlaying: isPlaying, title: title, artist: artist)
+                    return
+                }
+            }
+        }
+
+        // 3. Otherwise, emit stopped
+        self.emitState(isPlaying: false, title: "", artist: "")
+    }
+
+    private func runAppleScriptCommand(_ command: String) {
+        if let appleScript = NSAppleScript(source: command) {
+            var error: NSDictionary?
+            appleScript.executeAndReturnError(&error)
         }
     }
 
@@ -120,23 +181,81 @@ class MediaObserver {
     }
 
     func handleCommand(_ cmd: String) {
-        guard let sendCommand = sendCommand else { return }
-        switch cmd.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        let trimmed = cmd.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let isMusicActive = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.Music").first?.isTerminated == false
+        let isSpotifyActive = NSRunningApplication.runningApplications(withBundleIdentifier: "com.spotify.client").first?.isTerminated == false
+
+        switch trimmed {
         case "play_pause", "toggle":
-            let ok = sendCommand(2, nil) // kMRTogglePlayPause
-            if !ok { postSystemMediaKey(16) }
+            var ok = false
+            if let sendCommand = sendCommand {
+                ok = sendCommand(2, nil)
+            }
+            if !ok {
+                if isMusicActive {
+                    runAppleScriptCommand("tell application \"Music\" to playpause")
+                } else if isSpotifyActive {
+                    runAppleScriptCommand("tell application \"Spotify\" to playpause")
+                } else {
+                    postSystemMediaKey(16)
+                }
+            }
         case "play":
-            let ok = sendCommand(0, nil) // kMRPlay
-            if !ok { postSystemMediaKey(16) }
+            var ok = false
+            if let sendCommand = sendCommand {
+                ok = sendCommand(0, nil)
+            }
+            if !ok {
+                if isMusicActive {
+                    runAppleScriptCommand("tell application \"Music\" to play")
+                } else if isSpotifyActive {
+                    runAppleScriptCommand("tell application \"Spotify\" to play")
+                } else {
+                    postSystemMediaKey(16)
+                }
+            }
         case "pause":
-            let ok = sendCommand(1, nil) // kMRPause
-            if !ok { postSystemMediaKey(16) }
+            var ok = false
+            if let sendCommand = sendCommand {
+                ok = sendCommand(1, nil)
+            }
+            if !ok {
+                if isMusicActive {
+                    runAppleScriptCommand("tell application \"Music\" to pause")
+                } else if isSpotifyActive {
+                    runAppleScriptCommand("tell application \"Spotify\" to pause")
+                } else {
+                    postSystemMediaKey(16)
+                }
+            }
         case "next":
-            let ok = sendCommand(4, nil) // kMRNextTrack
-            if !ok { postSystemMediaKey(19) }
+            var ok = false
+            if let sendCommand = sendCommand {
+                ok = sendCommand(4, nil)
+            }
+            if !ok {
+                if isMusicActive {
+                    runAppleScriptCommand("tell application \"Music\" to next track")
+                } else if isSpotifyActive {
+                    runAppleScriptCommand("tell application \"Spotify\" to next track")
+                } else {
+                    postSystemMediaKey(19)
+                }
+            }
         case "prev", "previous":
-            let ok = sendCommand(5, nil) // kMRPreviousTrack
-            if !ok { postSystemMediaKey(20) }
+            var ok = false
+            if let sendCommand = sendCommand {
+                ok = sendCommand(5, nil)
+            }
+            if !ok {
+                if isMusicActive {
+                    runAppleScriptCommand("tell application \"Music\" to previous track")
+                } else if isSpotifyActive {
+                    runAppleScriptCommand("tell application \"Spotify\" to previous track")
+                } else {
+                    postSystemMediaKey(20)
+                }
+            }
         default:
             break
         }
