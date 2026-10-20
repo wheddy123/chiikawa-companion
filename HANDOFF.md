@@ -50,6 +50,9 @@
     - `ui_complete`: v1 (`ui_complete_v1.wav` — 1017ms, kalimba pentatonic chime C6-G6).
     - `sleep_gentle`: v3 (`sleep_gentle_v3.wav` — 3810ms, ethereal lofi ambient chime pad thay thế tiếng hét Usagi cũ khi báo thức 22:30).
   - Đạt chuẩn âm học 12/12 PASS (Peak $\le -3.1\text{ dBFS}$, RMS $[-18, -12]\text{ dBFS}$, đuôi 10ms im lặng chống pop).
+- **Mute/Unmute & Media Controller UX Hardening**:
+  - Xóa bỏ hoàn toàn bong bóng thoại dài dòng khi nhấp đúp mute/unmute (chỉ còn băng keo trực quan trên miệng bé và chuông `ui_complete` êm dịu khi mở lại âm thanh).
+  - Cách ly sự kiện chuột trên Media Widget (`#media-widget`): nhấp vào nút điều khiển nhạc (Play/Pause, Prev, Next) không còn kích hoạt nhầm cử chỉ kéo mascot hay double-click.
 - **Final Release DMG**:
   - Đóng gói bản cài đặt hoàn chỉnh và copy trực tiếp ra Desktop: `/Users/wheddy/Desktop/Chiikawa-AI-v1.4.1-arm64.dmg`.
 

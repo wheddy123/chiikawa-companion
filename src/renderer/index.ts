@@ -209,9 +209,13 @@ async function init() {
   window.addEventListener('mousedown', (e: MouseEvent) => {
     animator.notifyInteraction();
 
-    // Check if clicked on speech bubble
+    // Check if clicked on speech bubble or media widget
     const bubbleEl = bubbleManager.getActiveBubbleElement();
     if (bubbleEl && bubbleEl.contains(e.target as Node)) {
+      return;
+    }
+    const mediaEl = document.getElementById('media-widget');
+    if (mediaEl && mediaEl.contains(e.target as Node)) {
       return;
     }
 
@@ -275,6 +279,10 @@ async function init() {
   });
 
   window.addEventListener('mouseup', (e: MouseEvent) => {
+    const mediaEl = document.getElementById('media-widget');
+    if (mediaEl && mediaEl.contains(e.target as Node)) {
+      return;
+    }
     gesture.pointerUp(e.screenX, e.screenY, performance.now());
     if (isDragging) {
       endDrag();
@@ -330,25 +338,9 @@ async function init() {
         return;
       }
 
-      if (prevEnabled !== enabled) {
-        if (!enabled) {
-          bubbleManager.enqueue({
-            state: 'alert',
-            message: 'Mmmph!! Mmph-yaaa!! 🩹\n(Chiikawa đã bị dán băng keo bịt mồm & tắt tiếng. Nhấn đúp để gỡ!)',
-            source: 'chiikawa',
-            duration_ms: 3200,
-            sticky: false,
-          });
-        } else {
-          bubbleManager.enqueue({
-            state: 'success',
-            message: 'Haaa~! Thoát rồi! Đã gỡ băng keo & bật lại âm thanh 🎵',
-            source: 'chiikawa',
-            sound: 'ui_complete',
-            duration_ms: 2800,
-            sticky: false,
-          });
-        }
+      if (prevEnabled !== enabled && enabled) {
+        // Subtle audio feedback when unmuting, zero distracting text bubbles
+        soundManager.play('ui_complete');
       }
     });
 
