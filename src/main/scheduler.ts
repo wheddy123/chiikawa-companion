@@ -107,7 +107,7 @@ export class HealthScheduler {
         { id: 'sleep_now', label: 'Đi ngủ luôn 🛌', style: 'primary' },
         { id: 'snooze_5m', label: 'Cố thêm 5 phút ⏰', style: 'secondary' },
       ],
-      sound: 'usagi_haaa',
+      sound: 'sleep_gentle',
       sticky: true,
       source: 'health_scheduler',
     });

@@ -58,6 +58,10 @@ async function init() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(choice),
       }).catch((err) => console.warn('[Renderer] Failed to post choice:', err));
+    },
+    undefined,
+    () => {
+      soundManager.playUiHover();
     }
   );
 

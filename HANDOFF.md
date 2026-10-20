@@ -44,8 +44,13 @@
   - Tích hợp 7 âm thanh đặc trưng: `chiikawa_wah.mp3`, `chiikawa_fuwa.mp3`, `chiikawa_ya.mp3`, `chiikawa_haa.mp3`, `chiikawa_puka.mp3`, `chiikawa_iya.mp3`, `chiikawa_crying.mp3`.
   - Tích hợp tài liệu đặc tả chuẩn hóa **Chiikawa Voice Design Specification** vào `docs/CHIIKAWA_VOICE_DESIGN.md` (vocal characteristics, speech patterns, emotional range, audio production guidelines, constraints).
   - Chiikawa trở thành giọng nói chủ đạo cho các phản xạ mascot (xoa đầu, suy nghĩ, hoàn thành task, struggle, lỗi), thay vì chỉ có Usagi như trước.
-- **Earshot Forge UI SFX Suite**:
-  - Tích hợp 4 âm thanh UI thuần mã nguồn DSP: `ui_pop.wav`, `ui_hover.wav`, `ui_complete.wav`, `sleep_gentle.wav` đạt chuẩn âm học 12/12 PASS (Peak $\le -3.1\text{ dBFS}$, RMS $[-18, -12]\text{ dBFS}$).
+- **Earshot Forge UI SFX Suite (Phase P5 Integrated)**:
+  - Tích hợp 4 âm thanh UI thuần mã nguồn DSP theo đúng lựa chọn người dùng (HITL approved):
+    - `ui_pop`: v2 (`ui_pop_v2.wav` — 82ms, micro plop giòn dứt khoát).
+    - `ui_hover`: v1 (`ui_hover_v1.wav` — 20ms, glassy tactile tick gắn vào `mouseenter` của interactive buttons).
+    - `ui_complete`: v1 (`ui_complete_v1.wav` — 1017ms, kalimba pentatonic chime C6-G6).
+    - `sleep_gentle`: v3 (`sleep_gentle_v3.wav` — 3810ms, ethereal lofi ambient chime pad thay thế tiếng hét Usagi cũ khi báo thức 22:30).
+  - Đạt chuẩn âm học 12/12 PASS (Peak $\le -3.1\text{ dBFS}$, RMS $[-18, -12]\text{ dBFS}$, đuôi 10ms im lặng chống pop).
 - **Final Release DMG**:
   - Đóng gói bản cài đặt hoàn chỉnh và copy trực tiếp ra Desktop: `/Users/wheddy/Desktop/Chiikawa-AI-v1.4.1-arm64.dmg`.
 

@@ -10,17 +10,20 @@ export class SpeechBubbleManager {
   private onStateChange: (payload: NotifyPayload) => void;
   private onOptionClick?: (opt: NotifyOption, item: NotifyPayload) => void;
   private onBubbleVisibilityChange?: (hasBubble: boolean) => void;
+  private onOptionHover?: () => void;
 
   constructor(
     container: HTMLElement,
     onStateChange: (payload: NotifyPayload) => void,
     onOptionClick?: (opt: NotifyOption, item: NotifyPayload) => void,
-    onBubbleVisibilityChange?: (hasBubble: boolean) => void
+    onBubbleVisibilityChange?: (hasBubble: boolean) => void,
+    onOptionHover?: () => void
   ) {
     this.container = container;
     this.onStateChange = onStateChange;
     this.onOptionClick = onOptionClick;
     this.onBubbleVisibilityChange = onBubbleVisibilityChange;
+    this.onOptionHover = onOptionHover;
   }
 
   public enqueue(notification: NotifyPayload): void {
@@ -175,6 +178,12 @@ export class SpeechBubbleManager {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
           this.handleOptionSelection(btn, opt, item, textEl);
+        });
+
+        btn.addEventListener('mouseenter', () => {
+          if (this.onOptionHover) {
+            this.onOptionHover();
+          }
         });
 
         optionsContainer.appendChild(btn);
